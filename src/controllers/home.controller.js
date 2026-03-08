@@ -51,6 +51,8 @@ async function homePage(req, res, next) {
     res.render('home/index', {
       title: 'Ювелирный салон',
       pageTitle: 'Ювелирный салон премиум-класса',
+      reviewOk: String(req.query.review_ok || '') === '1',
+      reviewError: String(req.query.review_error || '') === '1',
       recentStoreReviews,
       popularProducts,
       discountedProducts

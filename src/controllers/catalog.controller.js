@@ -169,8 +169,12 @@ async function productPage(req, res, next) {
     });
 
     let canReview = false;
-    if (req.session.user && req.session.user.role_code === 'client') {
+    let userReview = null;
+    if (req.session.user) {
       canReview = await reviewModel.hasDeliveredProductOrder(req.session.user.id, product.id);
+      if (canReview) {
+        userReview = await reviewModel.getUserReviewForProduct(req.session.user.id, product.id);
+      }
     }
 
     return res.render('catalog/product', {
@@ -187,6 +191,9 @@ async function productPage(req, res, next) {
       discounts,
       reviews,
       canReview,
+      userReview,
+      reviewOk: String(req.query.review_ok || '') === '1',
+      reviewError: String(req.query.review_error || '') === '1',
       pricing,
       cart_qty: Number(cartQtyMap[product.id] || 0),
       is_wishlisted: Boolean(wishlistMap[product.id]),

@@ -1,0 +1,114 @@
+﻿<section>
+  <div class="card" style="margin-bottom: 14px;">
+    <a class="btn btn-secondary" href="/profile">Назад в профиль</a>
+  </div>
+
+  {{#if order}}
+    <div class="card">
+      <h1>Заказ #{{order.id}}</h1>
+      <p>Статус: <strong>{{order.status}}</strong></p>
+      <p>Создан: {{formatDate order.created_at}}</p>
+      <p>Телефон: {{order.phone}}</p>
+      <p>Курьер: {{#if order.courier_name}}{{order.courier_name}}{{else}}Не назначен{{/if}}</p>
+      <p>Слот доставки: {{#if order.slot_label}}{{order.slot_label}}{{else}}Не указан{{/if}}</p>
+      <p>Адрес:
+        {{#if order.city}}
+          {{order.city}}, {{order.street}}, {{order.house}}{{#if order.apartment}}, кв. {{order.apartment}}{{/if}}
+        {{else}}
+          Не указан
+        {{/if}}
+      </p>
+      {{#if order.address_comment}}<p>Комментарий к адресу: {{order.address_comment}}</p>{{/if}}
+      {{#if order.comment_text}}<p>Комментарий к заказу: {{order.comment_text}}</p>{{/if}}
+    </div>
+
+    <div class="card" style="margin-top: 14px;">
+      <h2>Товары в заказе</h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Товар</th>
+            <th>Кол-во</th>
+            <th>Цена</th>
+            <th>Скидки на единицу</th>
+            <th>Цена со скидкой</th>
+            <th>Сумма</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each order.items}}
+            <tr>
+              <td>
+                {{#if product_slug}}
+                  <a href="/catalog/{{product_slug}}">{{product_name}}</a>
+                {{else}}
+                  {{product_name}}
+                {{/if}}
+                {{#if product_sku}}<br /><span class="category">{{product_sku}}</span>{{/if}}
+              </td>
+              <td>{{quantity}}</td>
+              <td>{{formatCurrency unit_price}}</td>
+              <td>
+                Процент: {{discount_percent_applied}}%<br />
+                Фикс: {{formatCurrency discount_fixed_applied}}
+              </td>
+              <td>{{formatCurrency final_unit_price}}</td>
+              <td>{{formatCurrency line_total}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top: 14px;">
+      <h2>Промокоды в заказе</h2>
+      {{#if order.promos.length}}
+        <table class="admin-table">
+          <thead><tr><th>Код</th><th>Сумма скидки</th></tr></thead>
+          <tbody>
+            {{#each order.promos}}
+              <tr>
+                <td>{{code}}</td>
+                <td>{{formatCurrency discount_amount}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <p>Промокоды не применялись.</p>
+      {{/if}}
+    </div>
+
+    <div class="card" style="margin-top: 14px;">
+      <h2>Итоги заказа</h2>
+      <p>Сумма без скидок: {{formatCurrency order.subtotal}}</p>
+      <p>Общая скидка: {{formatCurrency order.discount_total}}</p>
+      <p><strong>Итого: {{formatCurrency order.total}}</strong></p>
+    </div>
+
+    <div class="card" style="margin-top: 14px;">
+      <h2>История статусов</h2>
+      {{#if order.history.length}}
+        <table class="admin-table">
+          <thead><tr><th>Статус</th><th>Когда</th><th>Кто изменил</th></tr></thead>
+          <tbody>
+            {{#each order.history}}
+              <tr>
+                <td>{{status}}</td>
+                <td>{{formatDate changed_at}}</td>
+                <td>{{#if changed_by_name}}{{changed_by_name}}{{else}}Система{{/if}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <p>История статусов пока пуста.</p>
+      {{/if}}
+    </div>
+  {{else}}
+    <div class="card">
+      <h1>Детали заказа</h1>
+      <p>Не удалось найти заказ с таким номером.</p>
+    </div>
+  {{/if}}
+</section>

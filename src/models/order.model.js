@@ -233,6 +233,68 @@ async function clientConfirmDelivery(orderId, userId) {
   });
 }
 
+async function getUserOrderDetails(orderId, userId, options = {}) {
+  const ignoreUserScope = Boolean(options.ignoreUserScope);
+  const whereSql = ignoreUserScope
+    ? `WHERE o.id = ?`
+    : `WHERE o.id = ? AND o.user_id = ?`;
+  const params = ignoreUserScope ? [orderId] : [orderId, userId];
+
+  const orders = await db.query(
+    `SELECT o.id, o.status, o.phone, o.comment_text, o.subtotal, o.discount_total, o.total, o.created_at,
+            o.courier_confirmed_at, o.client_confirmed_at, o.closed_at,
+            ds.label AS slot_label,
+            a.city, a.street, a.house, a.apartment, a.comment_text AS address_comment,
+            cu.full_name AS courier_name
+     FROM orders o
+     LEFT JOIN delivery_slots ds ON ds.id = o.slot_id
+     LEFT JOIN user_addresses a ON a.id = o.address_id
+     LEFT JOIN users cu ON cu.id = o.courier_id
+     ${whereSql}
+     LIMIT 1`,
+    params
+  );
+
+  const order = orders[0];
+  if (!order) return null;
+
+  const [items, promos, history] = await Promise.all([
+    db.query(
+      `SELECT oi.id, oi.product_id, oi.quantity, oi.unit_price, oi.final_unit_price, oi.line_total,
+              oi.discount_percent_applied, oi.discount_fixed_applied,
+              p.name AS product_name, p.slug AS product_slug, p.sku AS product_sku
+       FROM order_items oi
+       LEFT JOIN products p ON p.id = oi.product_id
+       WHERE oi.order_id = ?
+       ORDER BY oi.id ASC`,
+      [orderId]
+    ),
+    db.query(
+      `SELECT pc.code, opc.discount_amount
+       FROM order_promo_codes opc
+       JOIN promo_codes pc ON pc.id = opc.promo_code_id
+       WHERE opc.order_id = ?
+       ORDER BY opc.id ASC`,
+      [orderId]
+    ),
+    db.query(
+      `SELECT osh.status, osh.changed_at, u.full_name AS changed_by_name
+       FROM order_status_history osh
+       LEFT JOIN users u ON u.id = osh.changed_by
+       WHERE osh.order_id = ?
+       ORDER BY osh.id ASC`,
+      [orderId]
+    )
+  ]);
+
+  return {
+    ...order,
+    items,
+    promos,
+    history
+  };
+}
+
 module.exports = {
   createOrder,
   createOrderItems,
@@ -243,5 +305,6 @@ module.exports = {
   acceptOrderByCourier,
   courierConfirmDelivery,
   listUserOrders,
-  clientConfirmDelivery
+  clientConfirmDelivery,
+  getUserOrderDetails
 };

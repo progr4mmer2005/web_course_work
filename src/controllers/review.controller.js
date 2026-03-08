@@ -9,11 +9,11 @@ function validRating(value) {
 
 async function createProductReview(req, res, next) {
   try {
-    if (!req.session.user || req.session.user.role_code !== 'client') {
+    if (!req.session.user) {
       return res.status(403).render('partials/error', {
         layout: 'main',
         title: 'Нет доступа',
-        message: 'Оставлять отзывы может только клиент'
+        message: 'Для отправки отзыва нужно войти в аккаунт'
       });
     }
 
@@ -39,12 +39,7 @@ async function createProductReview(req, res, next) {
     const commentText = String(req.body.comment_text || '').trim();
 
     if (!validRating(rating) || commentText.length < 5) {
-      return res.redirect(`/catalog/${product.slug}`);
-    }
-
-    const alreadyReviewed = await reviewModel.hasProductReview(req.session.user.id, product.id);
-    if (alreadyReviewed) {
-      return res.redirect(`/catalog/${product.slug}`);
+      return res.redirect(`/catalog/${product.slug}?review_error=1`);
     }
 
     const canReview = await reviewModel.hasDeliveredProductOrder(req.session.user.id, product.id);
@@ -56,14 +51,14 @@ async function createProductReview(req, res, next) {
       });
     }
 
-    await reviewModel.createProductReview({
+    await reviewModel.upsertProductReview({
       userId: req.session.user.id,
       productId: product.id,
       rating,
       commentText
     });
 
-    return res.redirect(`/catalog/${product.slug}`);
+    return res.redirect(`/catalog/${product.slug}?review_ok=1`);
   } catch (error) {
     return next(error);
   }
@@ -71,11 +66,11 @@ async function createProductReview(req, res, next) {
 
 async function createStoreReview(req, res, next) {
   try {
-    if (!req.session.user || req.session.user.role_code !== 'client') {
+    if (!req.session.user) {
       return res.status(403).render('partials/error', {
         layout: 'main',
         title: 'Нет доступа',
-        message: 'Оставлять отзывы может только клиент'
+        message: 'Для отправки отзыва нужно войти в аккаунт'
       });
     }
 
@@ -92,12 +87,7 @@ async function createStoreReview(req, res, next) {
     const commentText = String(req.body.comment_text || '').trim();
 
     if (!validRating(rating) || commentText.length < 5) {
-      return res.redirect('/');
-    }
-
-    const alreadyReviewed = await reviewModel.hasStoreReview(req.session.user.id);
-    if (alreadyReviewed) {
-      return res.redirect('/');
+      return res.redirect('/?review_error=1');
     }
 
     const canReview = await reviewModel.hasDeliveredAnyOrder(req.session.user.id);
@@ -109,13 +99,13 @@ async function createStoreReview(req, res, next) {
       });
     }
 
-    await reviewModel.createStoreReview({
+    await reviewModel.upsertStoreReview({
       userId: req.session.user.id,
       rating,
       commentText
     });
 
-    return res.redirect('/');
+    return res.redirect('/?review_ok=1');
   } catch (error) {
     return next(error);
   }

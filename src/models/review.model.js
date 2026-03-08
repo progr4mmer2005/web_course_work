@@ -30,7 +30,7 @@ async function hasDeliveredProductOrder(userId, productId) {
      JOIN orders o ON o.id = oi.order_id
      WHERE o.user_id = ?
        AND oi.product_id = ?
-       AND o.status <> 'canceled'
+       AND o.status = 'delivered'
      LIMIT 1`,
     [userId, productId]
   );
@@ -58,6 +58,17 @@ async function hasProductReview(userId, productId) {
   return Boolean(rows[0]);
 }
 
+async function getUserReviewForProduct(userId, productId) {
+  const rows = await db.query(
+    `SELECT id, rating, comment_text, created_at
+     FROM reviews_product
+     WHERE user_id = ? AND product_id = ? AND is_published = 1
+     LIMIT 1`,
+    [userId, productId]
+  );
+  return rows[0] || null;
+}
+
 async function hasStoreReview(userId) {
   const rows = await db.query(
     `SELECT id FROM reviews_store WHERE user_id = ? LIMIT 1`,
@@ -74,12 +85,48 @@ async function createProductReview({ userId, productId, rating, commentText }) {
   );
 }
 
+async function upsertProductReview({ userId, productId, rating, commentText }) {
+  const rows = await db.query(
+    `SELECT id FROM reviews_product WHERE user_id = ? AND product_id = ? LIMIT 1`,
+    [userId, productId]
+  );
+
+  if (rows[0]) {
+    return db.query(
+      `UPDATE reviews_product
+       SET rating = ?, comment_text = ?, is_published = 1
+       WHERE id = ?`,
+      [rating, commentText, rows[0].id]
+    );
+  }
+
+  return createProductReview({ userId, productId, rating, commentText });
+}
+
 async function createStoreReview({ userId, rating, commentText }) {
   return db.query(
     `INSERT INTO reviews_store (user_id, rating, comment_text, is_published)
      VALUES (?, ?, ?, 1)`,
     [userId, rating, commentText]
   );
+}
+
+async function upsertStoreReview({ userId, rating, commentText }) {
+  const rows = await db.query(
+    `SELECT id FROM reviews_store WHERE user_id = ? ORDER BY id DESC LIMIT 1`,
+    [userId]
+  );
+
+  if (rows[0]) {
+    return db.query(
+      `UPDATE reviews_store
+       SET rating = ?, comment_text = ?, is_published = 1
+       WHERE id = ?`,
+      [rating, commentText, rows[0].id]
+    );
+  }
+
+  return createStoreReview({ userId, rating, commentText });
 }
 
 module.exports = {
@@ -89,6 +136,9 @@ module.exports = {
   hasDeliveredAnyOrder,
   hasProductReview,
   hasStoreReview,
+  getUserReviewForProduct,
   createProductReview,
-  createStoreReview
+  createStoreReview,
+  upsertProductReview,
+  upsertStoreReview
 };

@@ -51,6 +51,7 @@
                 Клиент: {{#if client_confirmed_at}}Да{{else}}Нет{{/if}}
               </td>
               <td>
+                <a class="btn btn-secondary" href="/profile/orders/{{id}}">Подробнее</a>
                 {{#if client_confirmed_at}}
                   <span class="category">Доставка подтверждена</span>
                 {{else}}
@@ -71,4 +72,5 @@
       <p>У вас пока нет заказов.</p>
     {{/if}}
   </section>
+
 </section>

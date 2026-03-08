@@ -69,25 +69,56 @@
 
 <section class="card" style="margin-top: 16px;">
   <h2>Оставить отзыв</h2>
+  {{#if reviewOk}}
+    <p class="in-stock">Отзыв сохранен.</p>
+  {{/if}}
+  {{#if reviewError}}
+    <p class="out-stock">Проверьте оценку и текст комментария (минимум 5 символов).</p>
+  {{/if}}
   {{#if isAuth}}
-    {{#if canReview}}
-      <form class="form" method="post" action="/catalog/{{product.slug}}/reviews">
-        <label>Оценка
-          <select name="rating" required>
-            <option value="5">5</option>
-            <option value="4">4</option>
-            <option value="3">3</option>
-            <option value="2">2</option>
-            <option value="1">1</option>
-          </select>
-        </label>
-        <label>Комментарий
-          <input type="text" name="comment_text" required minlength="5" maxlength="500" />
-        </label>
-        <button class="btn" type="submit">Отправить отзыв</button>
-      </form>
+    {{#if userReview}}
+      <div class="user-review">
+        <h3>Ваш отзыв</h3>
+        <div class="review-item">
+          <p><strong>Оценка: {{userReview.rating}}/5</strong></p>
+          <p>{{userReview.comment_text}}</p>
+        </div>
+        <form class="form" method="post" action="/catalog/{{product.slug}}/reviews">
+          <label>Изменить оценку
+            <select name="rating" required>
+              <option value="5" {{#if (eq userReview.rating 5)}}selected{{/if}}>5</option>
+              <option value="4" {{#if (eq userReview.rating 4)}}selected{{/if}}>4</option>
+              <option value="3" {{#if (eq userReview.rating 3)}}selected{{/if}}>3</option>
+              <option value="2" {{#if (eq userReview.rating 2)}}selected{{/if}}>2</option>
+              <option value="1" {{#if (eq userReview.rating 1)}}selected{{/if}}>1</option>
+            </select>
+          </label>
+          <label>Изменить комментарий
+            <input type="text" name="comment_text" required minlength="5" maxlength="500" value="{{userReview.comment_text}}" />
+          </label>
+          <button class="btn" type="submit">Обновить отзыв</button>
+        </form>
+      </div>
     {{else}}
-      <p>Отзыв доступен после заказа этого товара.</p>
+      {{#if canReview}}
+        <form class="form" method="post" action="/catalog/{{product.slug}}/reviews">
+          <label>Оценка
+            <select name="rating" required>
+              <option value="5">5</option>
+              <option value="4">4</option>
+              <option value="3">3</option>
+              <option value="2">2</option>
+              <option value="1">1</option>
+            </select>
+          </label>
+          <label>Комментарий
+            <input type="text" name="comment_text" required minlength="5" maxlength="500" />
+          </label>
+          <button class="btn" type="submit">Отправить отзыв</button>
+        </form>
+      {{else}}
+        <p>Отзыв доступен после заказа этого товара.</p>
+      {{/if}}
     {{/if}}
   {{else}}
     <p>Чтобы оставить отзыв, <a href="/auth/login">войдите в аккаунт</a>.</p>

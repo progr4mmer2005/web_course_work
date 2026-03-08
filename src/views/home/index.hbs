@@ -55,6 +55,12 @@
 
 <section class="card" style="margin-top: 16px;">
   <h2>Оставить отзыв о магазине</h2>
+  {{#if reviewOk}}
+    <p class="in-stock">Отзыв сохранен.</p>
+  {{/if}}
+  {{#if reviewError}}
+    <p class="out-stock">Проверьте оценку и комментарий (минимум 5 символов).</p>
+  {{/if}}
   {{#if isAuth}}
     <form class="form" method="post" action="/reviews/store">
       <label>Оценка

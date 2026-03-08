@@ -11,10 +11,14 @@ const reviewRoutes = require('./review.routes');
 const courierRoutes = require('./courier.routes');
 const apiCartRoutes = require('./api.cart.routes');
 const apiWishlistRoutes = require('./api.wishlist.routes');
+const profileController = require('../controllers/profile.controller');
+const { requireAuth } = require('../middlewares/auth.middleware');
 
 const router = express.Router();
 
 router.use('/', homeRoutes);
+router.get('/profile/orders/:id', requireAuth, profileController.orderDetailsPage);
+router.get('/profile/order-details/:id', requireAuth, profileController.orderDetailsPage);
 router.use('/auth', authRoutes);
 router.use('/catalog', catalogRoutes);
 router.use('/admin', adminRoutes);

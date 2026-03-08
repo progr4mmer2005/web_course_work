@@ -164,10 +164,27 @@ async function confirmOrderDelivery(req, res, next) {
   }
 }
 
+async function orderDetailsPage(req, res, next) {
+  try {
+    const orderId = Number(req.params.id);
+    const order = await orderModel.getUserOrderDetails(orderId, req.session.user.id, {
+      ignoreUserScope: true
+    });
+
+    return res.render('profile/order-details', {
+      title: order ? `Заказ #${order.id}` : 'Детали заказа',
+      order
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   profilePage,
   passwordPage,
   updateProfile,
   updatePassword,
-  confirmOrderDelivery
+  confirmOrderDelivery,
+  orderDetailsPage
 };

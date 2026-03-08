@@ -6,7 +6,8 @@ const { requireAuth } = require('../middlewares/auth.middleware');
 const router = express.Router();
 
 router.get('/', catalogController.catalogPage);
-router.get('/:slug', catalogController.productPage);
 router.post('/:slug/reviews', requireAuth, reviewController.createProductReview);
+router.get('/:slug/reviews', (req, res) => res.redirect(`/catalog/${req.params.slug}`));
+router.get('/:slug', catalogController.productPage);
 
 module.exports = router;
