@@ -1,0 +1,95 @@
+﻿<article class="product-page" data-product-id="{{product.id}}">
+  <div class="product-gallery">
+    {{#if images.length}}
+      {{#each images}}
+        <img src="/uploads/{{image_path}}" alt="{{alt_text}}" class="product-image" onerror="this.onerror=null;this.src='/public/img/placeholder.svg';" />
+      {{/each}}
+    {{else}}
+      <img src="/public/img/placeholder.svg" alt="{{product.name}}" class="product-image" />
+    {{/if}}
+  </div>
+
+  <div class="product-meta">
+    <h1>{{product.name}}</h1>
+    <p>{{product.description}}</p>
+    <p class="stock {{#if inStock}}in-stock{{else}}out-stock{{/if}}">
+      {{#if inStock}}В наличии: {{product.stock_quantity}}{{else}}Нет в наличии{{/if}}
+    </p>
+
+    <div class="price-wrap">
+      <span class="old-price">{{formatCurrency product.price}}</span>
+      <span class="new-price">{{formatCurrency pricing.finalPrice}}</span>
+      <span class="discount-badge">-{{pricing.finalDiscountPercent}}%</span>
+    </div>
+
+    <div class="cart-action {{#if (gt cart_qty 0)}}is-in-cart{{/if}}" data-product-id="{{product.id}}" data-stock="{{product.stock_quantity}}">
+      <div class="btn add-to-cart {{#unless inStock}}is-disabled{{/unless}}" {{#unless inStock}}aria-disabled="true"{{/unless}} role="button" tabindex="0">
+        <span class="cart-label">{{#if (gt cart_qty 0)}}В корзине {{cart_qty}} шт.{{else}}Добавить в корзину{{/if}}</span>
+        <div class="cart-quick-controls">
+          <button type="button" class="btn qty-minus">-</button>
+          <input type="number" class="qty-input" min="1" max="99" value="{{#if (gt cart_qty 0)}}{{cart_qty}}{{else}}1{{/if}}" />
+          <button type="button" class="btn qty-plus">+</button>
+          <button type="button" class="btn qty-remove">Удалить</button>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="btn add-to-wishlist {{#if is_wishlisted}}is-active{{/if}}" data-id="{{product.id}}" data-label-active="В избранном" data-label-inactive="В избранное">
+      {{#if is_wishlisted}}В избранном{{else}}В избранное{{/if}}
+    </button>
+
+    <h3>Примененные скидки</h3>
+    <ul>
+      {{#if discounts.length}}
+        {{#each discounts}}
+          <li>{{name}} ({{discount_type}}: {{discount_value}})</li>
+        {{/each}}
+      {{else}}
+        <li>Скидки не применяются</li>
+      {{/if}}
+    </ul>
+  </div>
+</article>
+
+<section class="card" style="margin-top: 18px;">
+  <h2>Отзывы о товаре</h2>
+  {{#if reviews.length}}
+    <div class="reviews-list">
+      {{#each reviews}}
+        <article class="review-item">
+          <p><strong>{{full_name}}</strong> · Оценка: {{rating}}/5</p>
+          <p>{{comment_text}}</p>
+        </article>
+      {{/each}}
+    </div>
+  {{else}}
+    <p>По этому товару пока нет отзывов.</p>
+  {{/if}}
+</section>
+
+<section class="card" style="margin-top: 16px;">
+  <h2>Оставить отзыв</h2>
+  {{#if isAuth}}
+    {{#if canReview}}
+      <form class="form" method="post" action="/catalog/{{product.slug}}/reviews">
+        <label>Оценка
+          <select name="rating" required>
+            <option value="5">5</option>
+            <option value="4">4</option>
+            <option value="3">3</option>
+            <option value="2">2</option>
+            <option value="1">1</option>
+          </select>
+        </label>
+        <label>Комментарий
+          <input type="text" name="comment_text" required minlength="5" maxlength="500" />
+        </label>
+        <button class="btn" type="submit">Отправить отзыв</button>
+      </form>
+    {{else}}
+      <p>Отзыв доступен после заказа этого товара.</p>
+    {{/if}}
+  {{else}}
+    <p>Чтобы оставить отзыв, <a href="/auth/login">войдите в аккаунт</a>.</p>
+  {{/if}}
+</section>

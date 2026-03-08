@@ -1,0 +1,13 @@
+﻿<section>
+  <h1>Избранное</h1>
+
+  {{#if items.length}}
+    <div class="product-grid">
+      {{#each items}}
+        {{> product-card item=this showWishlistButton=false showWishlistRemove=true}}
+      {{/each}}
+    </div>
+  {{else}}
+    <p>Список избранного пуст.</p>
+  {{/if}}
+</section>

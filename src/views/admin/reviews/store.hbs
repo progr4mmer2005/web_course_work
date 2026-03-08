@@ -1,0 +1,33 @@
+﻿<section>
+  <h1>Отзывы о магазине</h1>
+  <form method="get" class="filters">
+    <input type="text" name="search" value="{{search}}" placeholder="Поиск" />
+    <button class="btn" type="submit">Найти</button>
+    <a class="btn" href="/admin/reviews/store/new">Добавить</a>
+  </form>
+
+  <table class="admin-table">
+    <thead><tr><th>ID</th><th>Пользователь</th><th>Оценка</th><th>Комментарий</th><th>Публикация</th><th>Действия</th></tr></thead>
+    <tbody>
+      {{#each items}}
+        <tr>
+          <td>{{id}}</td>
+          <td>{{user_name}}</td>
+          <td>{{rating}}</td>
+          <td>{{comment_text}}</td>
+          <td>{{#if is_published}}Да{{else}}Нет{{/if}}</td>
+          <td>
+            <form method="post" action="/admin/reviews/store/{{id}}/toggle" class="inline-form">
+              <input type="hidden" name="is_published" value="{{#if is_published}}0{{else}}1{{/if}}" />
+              <button class="btn" type="submit">{{#if is_published}}Скрыть{{else}}Опубликовать{{/if}}</button>
+            </form>
+            <a class="btn" href="/admin/reviews/store/{{id}}/edit">Изменить</a>
+            <form method="post" action="/admin/reviews/store/{{id}}/delete" class="inline-form">
+              <button class="btn" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</section>

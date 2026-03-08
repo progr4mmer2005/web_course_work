@@ -1,0 +1,56 @@
+﻿<section>
+  <h1>Оформление заказа</h1>
+
+  {{#if cartItems.length}}
+    <form method="post" class="form card">
+      <label>Телефон
+        <input type="text" name="phone" required />
+      </label>
+
+      <label>Выберите адрес
+        <select name="address_id">
+          <option value="">Новый адрес</option>
+          {{#each addresses}}
+            <option value="{{id}}">{{city}}, {{street}}, {{house}}</option>
+          {{/each}}
+        </select>
+      </label>
+
+      <h3>Новый адрес (если не выбран из списка)</h3>
+      <label>Город
+        <input type="text" name="city" />
+      </label>
+      <label>Улица
+        <input type="text" name="street" />
+      </label>
+      <label>Дом
+        <input type="text" name="house" />
+      </label>
+      <label>Квартира
+        <input type="text" name="apartment" />
+      </label>
+      <label>Комментарий к адресу
+        <input type="text" name="comment_text" />
+      </label>
+
+      <label>Удобное время доставки
+        <select name="slot_id" required>
+          {{#each slots}}
+            <option value="{{id}}">{{label}}</option>
+          {{/each}}
+        </select>
+      </label>
+
+      <div class="cart-summary">
+        <p>Сумма без скидки: {{formatCurrency subtotal}}</p>
+        <p>Текущая скидка: {{formatCurrency discountTotal}}</p>
+        <p><strong>К оплате при доставке: {{formatCurrency total}}</strong></p>
+      </div>
+
+      <button class="btn" type="submit">Подтвердить заказ</button>
+    </form>
+  {{else}}
+    <p>Корзина пуста. Невозможно оформить заказ.</p>
+    <a class="btn" href="/catalog">В каталог</a>
+  {{/if}}
+</section>

@@ -1,0 +1,101 @@
+﻿<section>
+  <h1>{{#if item.id}}Редактировать скидку{{else}}Новая скидка{{/if}}</h1>
+  {{#if errors}}
+    <ul class="errors">
+      {{#each errors}}
+        <li>{{this}}</li>
+      {{/each}}
+    </ul>
+  {{/if}}
+  <form method="post" action="{{action}}" class="form card" id="discount-form">
+    <label>Название
+      <input type="text" name="name" value="{{item.name}}" required />
+    </label>
+    <label>Описание
+      <input type="text" name="description_text" value="{{item.description_text}}" />
+    </label>
+
+    <label>Область действия скидки
+      <select name="scope" id="scope-select" required>
+        <option value="product" {{#if (eq item.scope "product")}}selected{{/if}}>Один товар</option>
+        <option value="category" {{#if (eq item.scope "category")}}selected{{/if}}>Категория</option>
+        <option value="list" {{#if (eq item.scope "list")}}selected{{/if}}>Список товаров</option>
+        <option value="catalog" {{#if (eq item.scope "catalog")}}selected{{/if}}>Весь каталог</option>
+        <option value="order_sum" {{#if (eq item.scope "order_sum")}}selected{{/if}}>От суммы заказа</option>
+      </select>
+    </label>
+
+    <div id="target-products-block" class="target-builder" style="display:none;">
+      <h3>Товары для скидки</h3>
+      <div class="target-builder-controls">
+        <select id="product-source-select">
+          {{#each products}}
+            <option value="{{id}}">{{name}} ({{sku}})</option>
+          {{/each}}
+        </select>
+        <button class="btn" type="button" id="add-product-target">Добавить товар</button>
+      </div>
+      <ul id="product-target-list" class="target-list"></ul>
+      <div id="product-target-inputs"></div>
+    </div>
+
+    <div id="target-categories-block" class="target-builder" style="display:none;">
+      <h3>Категории для скидки</h3>
+      <div class="target-builder-controls">
+        <select id="category-source-select">
+          {{#each categories}}
+            <option value="{{id}}">{{name}}</option>
+          {{/each}}
+        </select>
+        <button class="btn" type="button" id="add-category-target">Добавить категорию</button>
+      </div>
+      <ul id="category-target-list" class="target-list"></ul>
+      <div id="category-target-inputs"></div>
+    </div>
+
+    <label class="checkbox-row"><input type="checkbox" name="is_promo" id="is-promo-checkbox" value="1" {{#if item.is_promo}}checked{{/if}} /><span>Активируется промокодом</span></label>
+
+    <div id="promo-code-block" class="target-builder" style="display:none;">
+      <h3>Код промокода</h3>
+      <label>
+        <input type="text" name="promo_code" id="promo-code-input" value="{{item.promo_code}}" placeholder="Например: WELCOME7" maxlength="80" />
+      </label>
+      <p class="category">Код будет активировать эту скидку на этапе оформления заказа.</p>
+    </div>
+
+    <label>Тип скидки
+      <select name="discount_type" required>
+        <option value="percent" {{#if (eq item.discount_type "percent")}}selected{{/if}}>Процент</option>
+        <option value="fixed" {{#if (eq item.discount_type "fixed")}}selected{{/if}}>Фиксированная сумма</option>
+      </select>
+    </label>
+    <label>Значение
+      <input type="number" step="0.01" name="discount_value" value="{{item.discount_value}}" required />
+    </label>
+    <label>Мин сумма заказа
+      <input type="number" step="0.01" name="min_order_amount" value="{{item.min_order_amount}}" />
+    </label>
+    <label>Макс сумма заказа
+      <input type="number" step="0.01" name="max_order_amount" value="{{item.max_order_amount}}" />
+    </label>
+    <label>Начало
+      <input type="datetime-local" name="start_at" value="{{item.start_at}}" />
+    </label>
+    <label>Конец
+      <input type="datetime-local" name="end_at" value="{{item.end_at}}" />
+    </label>
+    <label class="checkbox-row"><input type="checkbox" name="stackable" value="1" {{#if item.stackable}}checked{{/if}} /><span>Можно суммировать с другими скидками</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" {{#if item.is_active}}checked{{/if}} /><span>Активна</span></label>
+    <button class="btn" type="submit">Сохранить</button>
+  </form>
+</section>
+
+<script>
+  window.discountFormData = {
+    products: {{{json products}}},
+    categories: {{{json categories}}},
+    selectedProductIds: {{{json target.product_ids}}},
+    selectedCategoryIds: {{{json target.category_ids}}}
+  };
+</script>
+<script src="/public/js/admin-discounts.js"></script>

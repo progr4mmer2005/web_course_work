@@ -1,0 +1,27 @@
+﻿<section>
+  <h1>{{#if item.id}}Редактировать отзыв на товар{{else}}Новый отзыв на товар{{/if}}</h1>
+  <form method="post" action="{{action}}" class="form card">
+    <label>Клиент
+      <select name="user_id" required>
+        {{#each clients}}
+          <option value="{{id}}" {{#if (eq id ../item.user_id)}}selected{{/if}}>{{full_name}}</option>
+        {{/each}}
+      </select>
+    </label>
+    <label>Товар
+      <select name="product_id" required>
+        {{#each products}}
+          <option value="{{id}}" {{#if (eq id ../item.product_id)}}selected{{/if}}>{{name}}</option>
+        {{/each}}
+      </select>
+    </label>
+    <label>Оценка
+      <input type="number" min="1" max="5" name="rating" value="{{item.rating}}" required />
+    </label>
+    <label>Комментарий
+      <input type="text" name="comment_text" value="{{item.comment_text}}" required />
+    </label>
+    <label class="checkbox-row"><input type="checkbox" name="is_published" value="1" {{#if item.is_published}}checked{{/if}} /><span>Опубликован</span></label>
+    <button class="btn" type="submit">Сохранить</button>
+  </form>
+</section>

@@ -1,0 +1,32 @@
+﻿<header class="site-header">
+  <div class="container row-between">
+    <a href="/" class="brand">AURUM SALON</a>
+    <nav class="main-nav">
+      <button class="nav-toggle" type="button" aria-label="Открыть меню" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="main-nav-menu">
+        <a href="/catalog">Каталог</a>
+        {{#if isAuth}}
+          <a href="/wishlist">Избранное</a>
+          <a href="/cart">Корзина</a>
+          <a href="/profile">Профиль</a>
+          {{#if (or (eq currentUser.role_code "courier") (eq currentUser.role_code "admin"))}}
+            <a href="/courier/orders">Доставка</a>
+          {{/if}}
+          {{#if (or (eq currentUser.role_code "admin") (eq currentUser.role_code "manager"))}}
+            <a href="/admin">Админка</a>
+          {{/if}}
+          <form action="/auth/logout" method="post" class="inline-form">
+            <button type="submit" class="link-btn">Выйти</button>
+          </form>
+        {{else}}
+          <a href="/auth/login">Вход</a>
+          <a href="/auth/register">Регистрация</a>
+        {{/if}}
+      </div>
+    </nav>
+  </div>
+</header>

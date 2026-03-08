@@ -1,0 +1,35 @@
+﻿<section>
+  <h1>{{#if item.id}}Редактировать товар{{else}}Новый товар{{/if}}</h1>
+  <form method="post" action="{{action}}" class="form card">
+    <label>Название
+      <input type="text" name="name" value="{{item.name}}" required />
+    </label>
+    <label>Slug
+      <input type="text" name="slug" value="{{item.slug}}" />
+    </label>
+    <label>SKU
+      <input type="text" name="sku" value="{{item.sku}}" required />
+    </label>
+    <label>Категория
+      <select name="category_id" required>
+        {{#each categories}}
+          <option value="{{id}}" {{#if (eq id ../item.category_id)}}selected{{/if}}>{{name}}</option>
+        {{/each}}
+      </select>
+    </label>
+    <label>Описание
+      <input type="text" name="description" value="{{item.description}}" />
+    </label>
+    <label>Цена
+      <input type="number" step="0.01" name="price" value="{{item.price}}" required />
+    </label>
+    <label>Макс скидка %
+      <input type="number" step="0.01" name="max_discount_percent" value="{{item.max_discount_percent}}" required />
+    </label>
+    <label>Остаток
+      <input type="number" name="stock_quantity" value="{{item.stock_quantity}}" required />
+    </label>
+    <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" {{#if item.is_active}}checked{{/if}} /><span>Активен</span></label>
+    <button class="btn" type="submit">Сохранить</button>
+  </form>
+</section>

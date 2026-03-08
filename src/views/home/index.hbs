@@ -1,0 +1,77 @@
+﻿<section class="hero">
+  <h1>{{pageTitle}}</h1>
+  <p>Элегантные украшения с акцентом на классические формы и премиальные материалы.</p>
+  <a class="btn" href="/catalog">Перейти в каталог</a>
+</section>
+
+<section class="grid-3">
+  <article class="card">
+    <h3>Проверенное качество</h3>
+    <p>Каждое изделие проходит контроль и сопровождается описанием характеристик.</p>
+  </article>
+  <article class="card">
+    <h3>Персональная доставка</h3>
+    <p>Выберите удобный часовой слот доставки от 09:00 до 21:00.</p>
+  </article>
+  <article class="card">
+    <h3>Гибкие скидки</h3>
+    <p>Система скидок учитывает промокоды, категории, товары и сумму заказа.</p>
+  </article>
+</section>
+
+<section class="card" style="margin-top: 16px;">
+  <h2>Популярные товары</h2>
+  <div class="product-grid">
+    {{#each popularProducts}}
+      {{> product-card item=this showWishlistButton=true showWishlistRemove=false}}
+    {{/each}}
+  </div>
+</section>
+
+<section class="card" style="margin-top: 16px;">
+  <h2>Товары со скидками</h2>
+  <div class="product-grid">
+    {{#each discountedProducts}}
+      {{> product-card item=this showWishlistButton=true showWishlistRemove=false}}
+    {{/each}}
+  </div>
+</section>
+
+<section class="card" style="margin-top: 16px;">
+  <h2>Последние отзывы о магазине</h2>
+  {{#if recentStoreReviews.length}}
+    <div class="reviews-list">
+      {{#each recentStoreReviews}}
+        <article class="review-item">
+          <p><strong>{{full_name}}</strong> · Оценка: {{rating}}/5</p>
+          <p>{{comment_text}}</p>
+        </article>
+      {{/each}}
+    </div>
+  {{else}}
+    <p>Пока нет отзывов о магазине.</p>
+  {{/if}}
+</section>
+
+<section class="card" style="margin-top: 16px;">
+  <h2>Оставить отзыв о магазине</h2>
+  {{#if isAuth}}
+    <form class="form" method="post" action="/reviews/store">
+      <label>Оценка
+        <select name="rating" required>
+          <option value="5">5</option>
+          <option value="4">4</option>
+          <option value="3">3</option>
+          <option value="2">2</option>
+          <option value="1">1</option>
+        </select>
+      </label>
+      <label>Комментарий
+        <input type="text" name="comment_text" required minlength="5" maxlength="500" />
+      </label>
+      <button class="btn" type="submit">Отправить отзыв</button>
+    </form>
+  {{else}}
+    <p>Чтобы оставить отзыв, <a href="/auth/login">войдите в аккаунт</a>.</p>
+  {{/if}}
+</section>

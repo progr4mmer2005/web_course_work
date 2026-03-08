@@ -1,0 +1,45 @@
+﻿<article class="product-card {{#if showWishlistRemove}}wishlist-card{{/if}}" data-product-id="{{item.card_id}}" data-stock="{{item.stock_quantity}}">
+  <a href="/catalog/{{item.slug}}" class="product-image-wrap">
+    <img src="{{#if item.image_path}}/uploads/{{item.image_path}}{{else}}/public/img/placeholder.svg{{/if}}" alt="{{item.name}}" class="product-image" onerror="this.onerror=null;this.src='/public/img/placeholder.svg';" />
+  </a>
+  <h3><a href="/catalog/{{item.slug}}">{{item.name}}</a></h3>
+  <p class="stock {{#if item.inStock}}in-stock{{else}}out-stock{{/if}}">
+    {{#if item.inStock}}В наличии: {{item.stock_quantity}}{{else}}Нет в наличии{{/if}}
+  </p>
+  <div class="price-wrap">
+    <span class="old-price">{{formatCurrency item.price}}</span>
+    <span class="new-price">{{formatCurrency item.pricing.finalPrice}}</span>
+    <span class="discount-badge">-{{item.pricing.finalDiscountPercent}}%</span>
+  </div>
+
+  <div class="cart-action {{#if (gt item.cart_qty 0)}}is-in-cart{{/if}}" data-product-id="{{item.card_id}}" data-stock="{{item.stock_quantity}}">
+    <div class="btn add-to-cart {{#unless item.inStock}}is-disabled{{/unless}}" {{#unless item.inStock}}aria-disabled="true"{{/unless}} role="button" tabindex="0">
+      <span class="cart-label">{{#if (gt item.cart_qty 0)}}В корзине {{item.cart_qty}} шт.{{else}}Добавить в корзину{{/if}}</span>
+      <div class="cart-quick-controls">
+        <button type="button" class="btn qty-minus">-</button>
+        <input type="number" class="qty-input" min="1" max="99" value="{{#if (gt item.cart_qty 0)}}{{item.cart_qty}}{{else}}1{{/if}}" />
+        <button type="button" class="btn qty-plus">+</button>
+        <button type="button" class="btn qty-remove">Удалить</button>
+      </div>
+    </div>
+  </div>
+
+  {{#if showWishlistButton}}
+    <button type="button" class="btn add-to-wishlist {{#if item.is_wishlisted}}is-active{{/if}}" data-id="{{item.card_id}}" data-label-active="В избранном" data-label-inactive="В избранное">
+      {{#if item.is_wishlisted}}В избранном{{else}}В избранное{{/if}}
+    </button>
+  {{/if}}
+
+  {{#if showWishlistRemove}}
+    <div class="wishlist-actions">
+      <button class="btn wishlist-remove progress-btn" type="button">
+        <span class="btn-progress-fill"></span>
+        <span class="btn-progress-label">Удалить из избранного</span>
+      </button>
+      <button class="btn wishlist-cancel progress-btn" type="button" style="display:none;">
+        <span class="btn-progress-fill"></span>
+        <span class="btn-progress-label">Отменить удаление</span>
+      </button>
+    </div>
+  {{/if}}
+</article>

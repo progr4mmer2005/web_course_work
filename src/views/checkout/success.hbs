@@ -1,0 +1,8 @@
+﻿<section class="card">
+  <h1>Заказ оформлен</h1>
+  <p>Номер заказа: <strong>#{{order.orderId}}</strong></p>
+  <p>Сумма без скидок: {{formatCurrency order.subtotal}}</p>
+  <p>Скидка: {{formatCurrency order.discountTotal}}</p>
+  <p><strong>Итог к оплате при доставке: {{formatCurrency order.total}}</strong></p>
+  <a href="/catalog" class="btn">Продолжить покупки</a>
+</section>

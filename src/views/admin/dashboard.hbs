@@ -1,0 +1,15 @@
+﻿<section>
+  <h1>Админ-панель</h1>
+  <p>Унифицированный CRUD для основных сущностей.</p>
+  <div class="grid-3">
+    <a class="card" href="/admin/categories">Категории</a>
+    <a class="card" href="/admin/products">Товары</a>
+    {{#if (eq currentUser.role_code "admin")}}
+      <a class="card" href="/admin/users">Пользователи</a>
+    {{/if}}
+    <a class="card" href="/admin/discounts">Скидки</a>
+    <a class="card" href="/admin/orders">Заказы</a>
+    <a class="card" href="/admin/reviews/products">Отзывы на товары</a>
+    <a class="card" href="/admin/reviews/store">Отзывы о магазине</a>
+  </div>
+</section>

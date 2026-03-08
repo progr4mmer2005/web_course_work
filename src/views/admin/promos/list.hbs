@@ -1,0 +1,29 @@
+﻿<section>
+  <h1>Промокоды</h1>
+  <form method="get" class="filters">
+    <input type="text" name="search" value="{{search}}" placeholder="Поиск по коду" />
+    <button class="btn" type="submit">Найти</button>
+    <a class="btn" href="/admin/promos/new">Добавить</a>
+  </form>
+
+  <table class="admin-table">
+    <thead><tr><th>ID</th><th>Код</th><th>Правило скидки</th><th>Лимит</th><th>Активен</th><th>Действия</th></tr></thead>
+    <tbody>
+      {{#each items}}
+        <tr>
+          <td>{{id}}</td>
+          <td>{{code}}</td>
+          <td>{{discount_name}}</td>
+          <td>{{max_uses}}</td>
+          <td>{{#if is_active}}Да{{else}}Нет{{/if}}</td>
+          <td>
+            <a class="btn" href="/admin/promos/{{id}}/edit">Изменить</a>
+            <form class="inline-form" method="post" action="/admin/promos/{{id}}/delete">
+              <button class="btn" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</section>

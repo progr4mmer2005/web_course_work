@@ -1,0 +1,26 @@
+﻿<section class="auth-wrap">
+  <h1>Регистрация</h1>
+  {{#if errors}}
+    <ul class="errors">
+      {{#each errors}}
+        <li>{{this}}</li>
+      {{/each}}
+    </ul>
+  {{/if}}
+
+  <form action="/auth/register" method="post" class="form">
+    <label>ФИО
+      <input type="text" name="full_name" value="{{values.full_name}}" required />
+    </label>
+    <label>Email
+      <input type="email" name="email" value="{{values.email}}" required />
+    </label>
+    <label>Телефон
+      <input type="text" name="phone" value="{{values.phone}}" required />
+    </label>
+    <label>Пароль
+      <input type="password" name="password" required />
+    </label>
+    <button type="submit" class="btn">Создать аккаунт</button>
+  </form>
+</section>

@@ -1,0 +1,28 @@
+{
+  "name": "web_course_work",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --recursive tests/**/*.test.js",
+    "start": "node src/app.js",
+    "dev": "node src/app.js",
+    "db:reset": "mysql --default-character-set=utf8mb4 -u root -proot < sql/01_drop_create.sql && mysql --default-character-set=utf8mb4 -u root -proot jewelry_salon_db < sql/02_schema.sql && mysql --default-character-set=utf8mb4 -u root -proot jewelry_salon_db < sql/03_seed.sql"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "chai": "^6.2.2",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "express-fileupload": "^1.5.2",
+    "express-handlebars": "^8.0.6",
+    "express-session": "^1.19.0",
+    "mocha": "^11.7.5",
+    "mysql2": "^3.19.0",
+    "nodemailer": "^8.0.1"
+  }
+}

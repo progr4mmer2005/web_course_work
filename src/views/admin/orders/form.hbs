@@ -1,0 +1,61 @@
+﻿<section>
+  <h1>Редактировать заказ #{{item.id}}</h1>
+  <form method="post" action="{{action}}" class="form card">
+    <label>Клиент
+      <input type="text" value="{{item.user_name}} ({{item.user_email}})" disabled />
+    </label>
+    <label>Телефон
+      <input type="text" name="phone" value="{{item.phone}}" required />
+    </label>
+    <label>Курьер
+      <select name="courier_id">
+        <option value="">Не назначен</option>
+        {{#each couriers}}
+          <option value="{{id}}" {{#if (eq id ../item.courier_id)}}selected{{/if}}>{{full_name}} ({{email}})</option>
+        {{/each}}
+      </select>
+    </label>
+    <label>Статус
+      <select name="status" required>
+        <option value="new" {{#if (eq item.status "new")}}selected{{/if}}>new</option>
+        <option value="confirmed" {{#if (eq item.status "confirmed")}}selected{{/if}}>confirmed</option>
+        <option value="packing" {{#if (eq item.status "packing")}}selected{{/if}}>packing</option>
+        <option value="delivery" {{#if (eq item.status "delivery")}}selected{{/if}}>delivery</option>
+        <option value="delivered" {{#if (eq item.status "delivered")}}selected{{/if}}>delivered</option>
+        <option value="canceled" {{#if (eq item.status "canceled")}}selected{{/if}}>canceled</option>
+      </select>
+    </label>
+    <label>Комментарий
+      <input type="text" name="comment_text" value="{{item.comment_text}}" />
+    </label>
+
+    <div class="card">
+      <p><strong>Адрес:</strong> {{item.city}}, {{item.street}}, {{item.house}}{{#if item.apartment}}, кв. {{item.apartment}}{{/if}}</p>
+      <p><strong>Слот:</strong> {{item.slot_label}}</p>
+      <p><strong>Курьер подтвердил:</strong> {{#if item.courier_confirmed_at}}Да{{else}}Нет{{/if}}</p>
+      <p><strong>Клиент подтвердил:</strong> {{#if item.client_confirmed_at}}Да{{else}}Нет{{/if}}</p>
+      <p><strong>Сумма без скидки:</strong> {{formatCurrency item.subtotal}}</p>
+      <p><strong>Скидка:</strong> {{formatCurrency item.discount_total}}</p>
+      <p><strong>Итого:</strong> {{formatCurrency item.total}}</p>
+    </div>
+
+    <h3>Позиции заказа</h3>
+    <table class="admin-table">
+      <thead><tr><th>Товар</th><th>SKU</th><th>Кол-во</th><th>Цена</th><th>Цена со скидкой</th><th>Сумма</th></tr></thead>
+      <tbody>
+        {{#each orderItems}}
+          <tr>
+            <td>{{product_name}}</td>
+            <td>{{sku}}</td>
+            <td>{{quantity}}</td>
+            <td>{{formatCurrency unit_price}}</td>
+            <td>{{formatCurrency final_unit_price}}</td>
+            <td>{{formatCurrency line_total}}</td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+
+    <button class="btn" type="submit">Сохранить</button>
+  </form>
+</section>

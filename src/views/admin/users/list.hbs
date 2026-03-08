@@ -1,0 +1,48 @@
+﻿<section>
+  <h1>Пользователи</h1>
+  <form method="get" class="filters">
+    <input type="text" name="search" value="{{search}}" placeholder="Поиск (имя, email, телефон)" />
+    <select name="role">
+      <option value="" {{#if (eq role "")}}selected{{/if}}>Все роли</option>
+      {{#each roles}}
+        <option value="{{code}}" {{#if (eq code ../role)}}selected{{/if}}>{{name}}</option>
+      {{/each}}
+    </select>
+    <button class="btn" type="submit">Найти</button>
+    <a class="btn" href="/admin/users/new">Добавить</a>
+  </form>
+
+  <table class="admin-table">
+    <thead><tr><th>ID</th><th>Имя</th><th>Email</th><th>Телефон</th><th>Роль</th><th>Активен</th><th>Отзывы товар/магазин</th><th>Действия</th></tr></thead>
+    <tbody>
+      {{#each items}}
+        <tr>
+          <td>{{id}}</td>
+          <td>{{full_name}}</td>
+          <td>{{email}}</td>
+          <td>{{phone}}</td>
+          <td>{{role_name}}</td>
+          <td>{{#if is_active}}Да{{else}}Нет{{/if}}</td>
+          <td>
+            {{#if can_review_product}}Да{{else}}Нет{{/if}} / {{#if can_review_store}}Да{{else}}Нет{{/if}}
+          </td>
+          <td>
+            <a class="btn" href="/admin/users/{{id}}/edit">Изменить</a>
+            {{#if is_active}}
+              <form class="inline-form" method="post" action="/admin/users/{{id}}/delete">
+                <button class="btn" type="submit">Отключить</button>
+              </form>
+            {{else}}
+              <form class="inline-form" method="post" action="/admin/users/{{id}}/activate">
+                <button class="btn" type="submit">Включить</button>
+              </form>
+            {{/if}}
+            <form class="inline-form" method="post" action="/admin/users/{{id}}/hard-delete">
+              <button class="btn" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</section>

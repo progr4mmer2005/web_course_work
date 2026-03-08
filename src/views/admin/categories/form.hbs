@@ -1,0 +1,13 @@
+﻿<section>
+  <h1>{{#if item.id}}Редактировать категорию{{else}}Новая категория{{/if}}</h1>
+  <form method="post" action="{{action}}" class="form card">
+    <label>Название
+      <input type="text" name="name" value="{{item.name}}" required />
+    </label>
+    <label>Slug
+      <input type="text" name="slug" value="{{item.slug}}" />
+    </label>
+    <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" {{#if item.is_active}}checked{{/if}} /><span>Активна</span></label>
+    <button class="btn" type="submit">Сохранить</button>
+  </form>
+</section>

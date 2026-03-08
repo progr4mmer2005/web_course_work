@@ -1,0 +1,20 @@
+﻿<section>
+  <h1>{{#if item.id}}Редактировать промокод{{else}}Новый промокод{{/if}}</h1>
+  <form method="post" action="{{action}}" class="form card">
+    <label>Код
+      <input type="text" name="code" value="{{item.code}}" required />
+    </label>
+    <label>Правило скидки (scope=promo)
+      <select name="discount_rule_id" required>
+        {{#each rules}}
+          <option value="{{id}}" {{#if (eq id ../item.discount_rule_id)}}selected{{/if}}>{{name}}</option>
+        {{/each}}
+      </select>
+    </label>
+    <label>Макс использований
+      <input type="number" name="max_uses" value="{{item.max_uses}}" />
+    </label>
+    <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" {{#if item.is_active}}checked{{/if}} /><span>Активен</span></label>
+    <button class="btn" type="submit">Сохранить</button>
+  </form>
+</section>

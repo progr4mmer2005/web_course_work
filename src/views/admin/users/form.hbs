@@ -1,0 +1,37 @@
+﻿<section>
+  <h1>{{#if isCreate}}Новый пользователь{{else}}Редактировать пользователя{{/if}}</h1>
+  <form method="post" action="{{action}}" class="form card">
+    {{#if errors.length}}
+      <div class="errors">
+        {{#each errors}}<p>{{this}}</p>{{/each}}
+      </div>
+    {{/if}}
+
+    <label>Имя
+      <input type="text" name="full_name" value="{{item.full_name}}" required />
+    </label>
+    <label>Email
+      <input type="email" name="email" value="{{item.email}}" required />
+    </label>
+    <label>Телефон
+      <input type="text" name="phone" value="{{item.phone}}" required />
+    </label>
+    <label>Роль
+      <select name="role_code" required>
+        {{#each roles}}
+          <option value="{{code}}" {{#if (eq code ../item.role_code)}}selected{{/if}}>{{name}}</option>
+        {{/each}}
+      </select>
+    </label>
+    <label>
+      {{#if isCreate}}Пароль{{else}}Новый пароль (оставьте пустым, чтобы не менять){{/if}}
+      <input type="password" name="password" {{#if isCreate}}required{{/if}} minlength="6" />
+    </label>
+
+    <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" {{#if item.is_active}}checked{{/if}} /><span>Активен</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="can_review_product" value="1" {{#if item.can_review_product}}checked{{/if}} /><span>Разрешить отзывы на товары</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="can_review_store" value="1" {{#if item.can_review_store}}checked{{/if}} /><span>Разрешить отзыв о магазине</span></label>
+
+    <button class="btn" type="submit">Сохранить</button>
+  </form>
+</section>

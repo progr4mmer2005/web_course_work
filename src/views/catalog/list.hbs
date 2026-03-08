@@ -1,0 +1,44 @@
+﻿<section class="catalog-head">
+  <h1>Каталог украшений</h1>
+  <form method="get" class="filters">
+    <input type="text" name="q" value="{{filters.q}}" placeholder="Поиск" />
+    <select name="category_id">
+      <option value="">Все категории</option>
+      {{#each categories}}
+        <option value="{{id}}" {{#if (eq id ../filters.categoryId)}}selected{{/if}}>{{name}}</option>
+      {{/each}}
+    </select>
+    <input type="number" name="price_from" min="0" step="1" value="{{filters.priceFrom}}" placeholder="Цена от" />
+    <input type="number" name="price_to" min="0" step="1" value="{{filters.priceTo}}" placeholder="Цена до" />
+    <input type="number" name="min_discount" min="0" max="100" step="0.1" value="{{filters.minDiscount}}" placeholder="Мин. скидка %" />
+    <select name="sort_price">
+      <option value="" class="select-placeholder">Без сортировки по цене</option>
+      <option value="asc" {{#if (eq filters.sortPrice "asc")}}selected{{/if}}>Цена: по возрастанию</option>
+      <option value="desc" {{#if (eq filters.sortPrice "desc")}}selected{{/if}}>Цена: по убыванию</option>
+    </select>
+    <select name="sort_discount">
+      <option value="" class="select-placeholder">Без сортировки по скидке</option>
+      <option value="asc" {{#if (eq filters.sortDiscount "asc")}}selected{{/if}}>Скидка: по возрастанию</option>
+      <option value="desc" {{#if (eq filters.sortDiscount "desc")}}selected{{/if}}>Скидка: по убыванию</option>
+    </select>
+    <input type="hidden" name="in_stock" value="0" />
+    <label class="checkbox-inline filter-checkbox">
+      <input type="checkbox" name="in_stock" value="1" {{#if filters.onlyInStock}}checked{{/if}} />
+      <span>Только в наличии</span>
+    </label>
+    <button type="submit" class="btn">Применить</button>
+    <a href="/catalog" class="btn btn-secondary">Сбросить</a>
+  </form>
+</section>
+
+<section class="product-grid">
+  {{#each items}}
+    {{> product-card item=this showWishlistButton=true showWishlistRemove=false}}
+  {{/each}}
+</section>
+
+<nav class="pagination">
+  {{#if pagination.hasPrev}}<a href="{{pagination.prevLink}}">Назад</a>{{/if}}
+  <span>Страница {{pagination.page}} / {{pagination.totalPages}}</span>
+  {{#if pagination.hasNext}}<a href="{{pagination.nextLink}}">Вперед</a>{{/if}}
+</nav>

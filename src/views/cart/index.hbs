@@ -1,0 +1,61 @@
+﻿<section>
+  <h1>Корзина</h1>
+
+  {{#if cartItems.length}}
+    <div class="cart-list">
+      {{#each cartItems}}
+        <article class="card cart-item" data-product-id="{{product_id}}">
+          <div class="cart-grid">
+            <div>
+              <h3><a href="/catalog/{{slug}}">{{name}}</a></h3>
+              <p>Цена: {{formatCurrency unit_price}}</p>
+              <p>Со скидкой: {{formatCurrency final_unit_price}}</p>
+              <p>В наличии: {{stock_quantity}}</p>
+            </div>
+            <div>
+              <p>Количество</p>
+              <div class="cart-qty-row">
+                <div class="cart-qty-wrap">
+                  <button type="button" class="btn cart-page-minus">-</button>
+                  <input type="number" class="cart-qty" value="{{quantity}}" min="1" max="99" data-stock="{{stock_quantity}}" />
+                  <button type="button" class="btn cart-page-plus">+</button>
+                </div>
+                <button class="btn cart-remove">Удалить</button>
+              </div>
+            </div>
+            <div>
+              <p>Сумма: <span class="cart-line-total">{{formatCurrency line_total}}</span></p>
+            </div>
+          </div>
+        </article>
+      {{/each}}
+    </div>
+
+    <div class="card cart-summary">
+      <div class="promo-manager">
+        <p><strong>Промокоды</strong></p>
+        <p class="category">Можно активировать несколько кодов. Финально они будут списаны только после оформления заказа.</p>
+        <div class="promo-manager-row">
+          <input type="text" id="cart-promo-input" placeholder="Введите промокод" maxlength="80" />
+          <button type="button" class="btn cart-promo-add">Активировать</button>
+        </div>
+        <div id="cart-promo-list" class="promo-list">
+          {{#each promoCodes}}
+            <div class="promo-chip" data-code="{{this}}">
+              <span>{{this}}</span>
+              <button type="button" class="promo-chip-remove" data-code="{{this}}" aria-label="Удалить промокод {{this}}">&times;</button>
+            </div>
+          {{/each}}
+        </div>
+      </div>
+
+      <p>Сумма без скидки: <span id="cart-subtotal">{{formatCurrency subtotal}}</span></p>
+      <p>Скидка: <span id="cart-discount">{{formatCurrency discountTotal}}</span></p>
+      <p><strong>Итого: <span id="cart-total">{{formatCurrency total}}</span></strong></p>
+      <a class="btn" href="/checkout">Оформить заказ</a>
+    </div>
+  {{else}}
+    <p>Корзина пуста</p>
+    <a class="btn" href="/catalog">Перейти в каталог</a>
+  {{/if}}
+</section>
