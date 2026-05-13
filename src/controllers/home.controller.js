@@ -30,30 +30,39 @@ async function withPricing(items, cartQtyMap = {}, wishlistMap = {}) {
 
 async function homePage(req, res, next) {
   try {
-    const [user, recentStoreReviews, popularRaw, discountedRaw, cartQtyMap, wishlistMap] = await Promise.all([
-      req.session.user ? userModel.findById(req.session.user.id) : null,
+    const user = req.session.user ? await userModel.findById(req.session.user.id) : null;
+
+    const [recentStoreReviews, popularRaw, discountedRaw, cartQtyMap, wishlistMap, userStoreReview] = await Promise.all([
       reviewModel.getRecentStoreReviews(6),
       homeModel.getPopularProducts(8),
       homeModel.getDiscountedProducts(8),
-      req.session.user ? cartModel.getQuantityMap(req.session.user.id) : Promise.resolve({}),
-      req.session.user ? wishlistModel.getProductIdsMap(req.session.user.id) : Promise.resolve({})
+      user ? cartModel.getQuantityMap(user.id) : Promise.resolve({}),
+      user ? wishlistModel.getProductIdsMap(user.id) : Promise.resolve({}),
+      user ? reviewModel.getUserStoreReview(user.id) : Promise.resolve(null)
     ]);
 
     if (user) {
       req.session.user = user;
     }
 
-    const [popularProducts, discountedProducts] = await Promise.all([
+    const [popularProducts, discountedProductsRaw] = await Promise.all([
       withPricing(popularRaw, cartQtyMap, wishlistMap),
       withPricing(discountedRaw, cartQtyMap, wishlistMap)
     ]);
+
+    const discountedProducts = discountedProductsRaw
+      .filter((item) => Number(item?.pricing?.finalDiscountPercent || 0) > 0)
+      .sort((a, b) => Number(b?.pricing?.finalDiscountPercent || 0) - Number(a?.pricing?.finalDiscountPercent || 0));
 
     res.render('home/index', {
       title: 'Ювелирный салон',
       pageTitle: 'Ювелирный салон премиум-класса',
       reviewOk: String(req.query.review_ok || '') === '1',
       reviewError: String(req.query.review_error || '') === '1',
+      storeReviewDeleted: String(req.query.store_review_deleted || '') === '1',
+      storeReviewDeleteError: String(req.query.store_review_deleted || '') === '0',
       recentStoreReviews,
+      userStoreReview,
       popularProducts,
       discountedProducts
     });

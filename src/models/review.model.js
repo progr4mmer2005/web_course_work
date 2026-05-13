@@ -2,7 +2,7 @@
 
 async function getProductReviews(productId, limit = 20) {
   return db.query(
-    `SELECT rp.id, rp.rating, rp.comment_text, rp.created_at, u.full_name
+    `SELECT rp.id, rp.rating, rp.comment_text, rp.created_at, u.full_name, u.avatar_path
      FROM reviews_product rp
      JOIN users u ON u.id = rp.user_id
      WHERE rp.product_id = ? AND rp.is_published = 1
@@ -14,7 +14,7 @@ async function getProductReviews(productId, limit = 20) {
 
 async function getRecentStoreReviews(limit = 6) {
   return db.query(
-    `SELECT rs.id, rs.rating, rs.comment_text, rs.created_at, u.full_name
+    `SELECT rs.id, rs.rating, rs.comment_text, rs.created_at, u.full_name, u.avatar_path
      FROM reviews_store rs
      JOIN users u ON u.id = rs.user_id
      WHERE rs.is_published = 1
@@ -77,6 +77,18 @@ async function hasStoreReview(userId) {
   return Boolean(rows[0]);
 }
 
+async function getUserStoreReview(userId) {
+  const rows = await db.query(
+    `SELECT id, rating, comment_text, created_at
+     FROM reviews_store
+     WHERE user_id = ?
+     ORDER BY id DESC
+     LIMIT 1`,
+    [userId]
+  );
+  return rows[0] || null;
+}
+
 async function createProductReview({ userId, productId, rating, commentText }) {
   return db.query(
     `INSERT INTO reviews_product (user_id, product_id, rating, comment_text, is_published)
@@ -129,6 +141,24 @@ async function upsertStoreReview({ userId, rating, commentText }) {
   return createStoreReview({ userId, rating, commentText });
 }
 
+async function deleteUserProductReview(userId, productId) {
+  const result = await db.query(
+    `DELETE FROM reviews_product
+     WHERE user_id = ? AND product_id = ?`,
+    [userId, productId]
+  );
+  return Number(result?.affectedRows || 0);
+}
+
+async function deleteUserStoreReview(userId) {
+  const result = await db.query(
+    `DELETE FROM reviews_store
+     WHERE user_id = ?`,
+    [userId]
+  );
+  return Number(result?.affectedRows || 0);
+}
+
 module.exports = {
   getProductReviews,
   getRecentStoreReviews,
@@ -137,8 +167,11 @@ module.exports = {
   hasProductReview,
   hasStoreReview,
   getUserReviewForProduct,
+  getUserStoreReview,
   createProductReview,
   createStoreReview,
   upsertProductReview,
-  upsertStoreReview
+  upsertStoreReview,
+  deleteUserProductReview,
+  deleteUserStoreReview
 };

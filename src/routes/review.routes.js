@@ -5,5 +5,6 @@ const { requireAuth } = require('../middlewares/auth.middleware');
 const router = express.Router();
 
 router.post('/store', requireAuth, reviewController.createStoreReview);
+router.post('/store/delete', requireAuth, reviewController.deleteStoreReview);
 
 module.exports = router;

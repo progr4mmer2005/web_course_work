@@ -8,6 +8,19 @@ function validPhone(phone) {
   return /^\+?[0-9\-\s()]{10,20}$/.test(phone || '');
 }
 
+function removeAvatarFile(relativePath) {
+  const safePath = String(relativePath || '').trim();
+  if (!safePath) return;
+  try {
+    const absolutePath = path.join(process.cwd(), 'uploads', safePath);
+    if (fs.existsSync(absolutePath)) {
+      fs.unlinkSync(absolutePath);
+    }
+  } catch (error) {
+    console.error(`Не удалось удалить аватар ${safePath}`, error);
+  }
+}
+
 async function profilePage(req, res, next) {
   try {
     const [user, orders] = await Promise.all([
@@ -45,9 +58,13 @@ async function passwordPage(req, res, next) {
 
 async function updateProfile(req, res, next) {
   try {
+    const currentUser = await userModel.findById(req.session.user.id);
+    if (!currentUser) return res.redirect('/auth/login');
+
     const fullName = String(req.body.full_name || '').trim();
     const email = String(req.body.email || '').trim().toLowerCase();
     const phone = String(req.body.phone || '').trim();
+    const removeAvatar = String(req.body.remove_avatar || '0') === '1';
 
     const errors = [];
     if (fullName.length < 2) errors.push('Имя должно быть не короче 2 символов');
@@ -57,7 +74,7 @@ async function updateProfile(req, res, next) {
     const emailUsed = await userModel.emailExistsForAnotherUser(email, req.session.user.id);
     if (emailUsed) errors.push('Этот email уже используется другим пользователем');
 
-    let avatarPath = '';
+    let uploadedAvatarPath = '';
     if (req.files && req.files.avatar) {
       const file = req.files.avatar;
       const ext = path.extname(file.name || '').toLowerCase();
@@ -70,11 +87,14 @@ async function updateProfile(req, res, next) {
         const filename = `user_${req.session.user.id}_${Date.now()}${ext}`;
         const targetPath = path.join(targetDir, filename);
         await file.mv(targetPath);
-        avatarPath = `avatars/${filename}`;
+        uploadedAvatarPath = `avatars/${filename}`;
       }
     }
 
     if (errors.length) {
+      if (uploadedAvatarPath) {
+        removeAvatarFile(uploadedAvatarPath);
+      }
       const [user, orders] = await Promise.all([
         userModel.findById(req.session.user.id),
         orderModel.listUserOrders(req.session.user.id)
@@ -93,12 +113,25 @@ async function updateProfile(req, res, next) {
       });
     }
 
+    let avatarPathForUpdate;
+    if (uploadedAvatarPath) {
+      avatarPathForUpdate = uploadedAvatarPath;
+    } else if (removeAvatar) {
+      avatarPathForUpdate = null;
+    } else {
+      avatarPathForUpdate = undefined;
+    }
+
     await userModel.updateProfile(req.session.user.id, {
       fullName,
       email,
       phone,
-      avatarPath
+      avatarPath: avatarPathForUpdate
     });
+
+    if ((uploadedAvatarPath || removeAvatar) && currentUser.avatar_path) {
+      removeAvatarFile(currentUser.avatar_path);
+    }
 
     const user = await userModel.findById(req.session.user.id);
     req.session.user = user;

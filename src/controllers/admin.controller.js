@@ -1,4 +1,6 @@
-﻿const bcrypt = require('bcrypt');
+﻿const fs = require('fs');
+const path = require('path');
+const bcrypt = require('bcrypt');
 const categoryModel = require('../models/adminCategory.model');
 const productModel = require('../models/adminProduct.model');
 const discountModel = require('../models/adminDiscount.model');
@@ -10,8 +12,191 @@ const { normalizeBool, slugify } = require('../utils/admin.util');
 
 function renderAdmin(res, view, data) {
   return res.render(view, {
-    title: 'Админ-панель',
+    title: '\u0410\u0434\u043c\u0438\u043d-\u043f\u0430\u043d\u0435\u043b\u044c',
     ...data
+  });
+}
+
+const ALLOWED_IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+
+function getDefaultProductItem() {
+  return {
+    max_discount_percent: 40,
+    stock_quantity: 0,
+    is_active: 1
+  };
+}
+
+function toArray(value) {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function buildProductFormItem(body = {}, fallback = {}) {
+  return {
+    ...fallback,
+    category_id: body.category_id !== undefined ? String(body.category_id || '').trim() : fallback.category_id,
+    name: body.name !== undefined ? String(body.name || '').trim() : fallback.name,
+    slug: body.slug !== undefined ? String(body.slug || '').trim() : fallback.slug,
+    description: body.description !== undefined ? String(body.description || '').trim() : fallback.description,
+    sku: body.sku !== undefined ? String(body.sku || '').trim() : fallback.sku,
+    price: body.price !== undefined ? String(body.price || '').trim() : fallback.price,
+    max_discount_percent: body.max_discount_percent !== undefined
+      ? String(body.max_discount_percent || '').trim()
+      : fallback.max_discount_percent,
+    stock_quantity: body.stock_quantity !== undefined ? String(body.stock_quantity || '').trim() : fallback.stock_quantity,
+    is_active: body.is_active !== undefined ? normalizeBool(body.is_active) : Boolean(fallback.is_active)
+  };
+}
+
+function makeSku(name, fallbackSku = '') {
+  const safeFallbackSku = String(fallbackSku || '').trim();
+  if (safeFallbackSku.length >= 2) return safeFallbackSku;
+
+  const slugBase = slugify(String(name || '').trim()) || 'product';
+  const suffix = Date.now().toString().slice(-6);
+  return `SKU-${slugBase}-${suffix}`.toUpperCase();
+}
+
+function validateProductPayload(body, fallbackItem = {}) {
+  const item = buildProductFormItem(body, { ...getDefaultProductItem(), ...fallbackItem });
+  const safeName = String(item.name || '').trim();
+  const safeSlug = String(item.slug || '').trim() || slugify(safeName);
+  const safeSku = makeSku(safeName, item.sku);
+
+  const payload = {
+    category_id: Number(item.category_id || 0),
+    name: safeName,
+    slug: safeSlug,
+    description: String(item.description || '').trim(),
+    sku: safeSku,
+    price: Number(item.price || 0),
+    max_discount_percent: Number(item.max_discount_percent || 40),
+    stock_quantity: Number(item.stock_quantity || 0),
+    is_active: normalizeBool(body.is_active)
+  };
+
+  const errors = [];
+  if (!payload.category_id) errors.push('Выберите категорию товара');
+  if (payload.name.length < 2) errors.push('Название товара должно быть не короче 2 символов');
+  if (Number.isNaN(payload.price) || payload.price < 0) errors.push('Цена должна быть числом не меньше 0');
+  if (Number.isNaN(payload.max_discount_percent) || payload.max_discount_percent < 0 || payload.max_discount_percent > 100) {
+    errors.push('Максимальная скидка должна быть в диапазоне от 0 до 100');
+  }
+  if (Number.isNaN(payload.stock_quantity) || payload.stock_quantity < 0) {
+    errors.push('Остаток должен быть числом не меньше 0');
+  }
+
+  return { errors, payload, item };
+}
+
+function getRemoveImageIds(body) {
+  return [...toArray(body.remove_image_ids), body.delete_image_id]
+    .map((value) => Number(value))
+    .filter(Boolean);
+}
+
+function getFileExtension(file) {
+  return path.extname(file?.name || '').toLowerCase();
+}
+
+function ensureImageFile(file) {
+  const ext = getFileExtension(file);
+  if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) {
+    throw new Error('Р Р°Р·СЂРµС€РµРЅС‹ С‚РѕР»СЊРєРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ jpg, jpeg, png, webp');
+  }
+  return ext;
+}
+
+async function saveProductFile(file, kind) {
+  const ext = ensureImageFile(file);
+  const targetDir = path.join(process.cwd(), 'uploads', 'products');
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const filename = `${kind}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+  const targetPath = path.join(targetDir, filename);
+  await file.mv(targetPath);
+  return `products/${filename}`;
+}
+
+function removeUploadedFiles(relativePaths = []) {
+  for (const relativePath of relativePaths) {
+    if (!relativePath) continue;
+
+    try {
+      const targetPath = path.join(process.cwd(), 'uploads', relativePath);
+      if (fs.existsSync(targetPath)) {
+        fs.unlinkSync(targetPath);
+      }
+    } catch (error) {
+      console.error(`РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ С„Р°Р№Р» ${relativePath}`, error);
+    }
+  }
+}
+
+async function uploadProductImages(files, productName) {
+  const uploaded = {
+    primaryImagePath: '',
+    galleryImages: [],
+    savedPaths: []
+  };
+
+  try {
+    const primaryFile = Array.isArray(files?.primary_image) ? files.primary_image[0] : files?.primary_image;
+    if (primaryFile) {
+      uploaded.primaryImagePath = await saveProductFile(primaryFile, 'product_main');
+      uploaded.savedPaths.push(uploaded.primaryImagePath);
+    }
+
+    const galleryFiles = toArray(files?.gallery_images);
+    for (const galleryFile of galleryFiles) {
+      const imagePath = await saveProductFile(galleryFile, 'product_gallery');
+      uploaded.galleryImages.push({
+        image_path: imagePath,
+        alt_text: productName || null
+      });
+      uploaded.savedPaths.push(imagePath);
+    }
+
+    return uploaded;
+  } catch (error) {
+    removeUploadedFiles(uploaded.savedPaths);
+    throw error;
+  }
+}
+
+function getProductErrorMessage(error) {
+  if (error?.code === 'ER_DUP_ENTRY') {
+    return 'РўРѕРІР°СЂ СЃ С‚Р°РєРёРј slug РёР»Рё SKU СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚';
+  }
+  return error?.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ С‚РѕРІР°СЂ';
+}
+
+function isAjaxRequest(req) {
+  return req.get('X-Requested-With') === 'XMLHttpRequest';
+}
+
+function mapProductImagesForResponse(images = []) {
+  const normalized = Array.isArray(images) ? images : [];
+  const primaryImage = normalized.length ? normalized[0] : null;
+  const galleryImages = normalized.length > 1 ? normalized.slice(1) : [];
+
+  return { primaryImage, galleryImages };
+}
+
+function renderProductForm(res, { item, categories, action, currentImages = [], errors = [] }, status = 200) {
+  const images = Array.isArray(currentImages) ? currentImages : [];
+  const primaryImage = images.length ? images[0] : null;
+  const galleryImages = images.length > 1 ? images.slice(1) : [];
+
+  res.status(status);
+  return renderAdmin(res, 'admin/products/form', {
+    item,
+    categories,
+    action,
+    primaryImage,
+    galleryImages,
+    errors
   });
 }
 
@@ -79,62 +264,174 @@ async function productsList(req, res, next) {
 async function productNewForm(req, res, next) {
   try {
     const categories = await catalogCategoryModel.getAll();
-    return renderAdmin(res, 'admin/products/form', { item: {}, categories, action: '/admin/products' });
+    return renderProductForm(res, {
+      item: getDefaultProductItem(),
+      categories,
+      action: '/admin/products'
+    });
   } catch (error) { return next(error); }
 }
 
 async function productCreate(req, res, next) {
   try {
-    await productModel.createProduct({
-      category_id: Number(req.body.category_id),
-      name: (req.body.name || '').trim(),
-      slug: (req.body.slug || '').trim() || slugify(req.body.name),
-      description: (req.body.description || '').trim(),
-      sku: (req.body.sku || '').trim(),
-      price: Number(req.body.price || 0),
-      max_discount_percent: Number(req.body.max_discount_percent || 40),
-      stock_quantity: Number(req.body.stock_quantity || 0),
-      is_active: normalizeBool(req.body.is_active)
-    });
+    const categories = await catalogCategoryModel.getAll();
+    const { errors, payload, item } = validateProductPayload(req.body);
+
+    if (errors.length) {
+      return renderProductForm(res, {
+        item,
+        categories,
+        action: '/admin/products',
+        errors
+      }, 400);
+    }
+
+    let uploaded = {
+      primaryImagePath: '',
+      galleryImages: [],
+      savedPaths: []
+    };
+
+    try {
+      uploaded = await uploadProductImages(req.files, payload.name);
+      await productModel.createProduct({
+        ...payload,
+        images: [
+          ...(uploaded.primaryImagePath ? [{
+            image_path: uploaded.primaryImagePath,
+            alt_text: payload.name
+          }] : []),
+          ...uploaded.galleryImages
+        ]
+      });
+    } catch (error) {
+      removeUploadedFiles(uploaded.savedPaths);
+      return renderProductForm(res, {
+        item,
+        categories,
+        action: '/admin/products',
+        errors: [getProductErrorMessage(error)]
+      }, 400);
+    }
+
     return res.redirect('/admin/products');
   } catch (error) { return next(error); }
 }
 
 async function productEditForm(req, res, next) {
   try {
-    const [item, categories] = await Promise.all([
+    const [item, categories, currentImages] = await Promise.all([
       productModel.getProductById(Number(req.params.id)),
-      catalogCategoryModel.getAll()
+      catalogCategoryModel.getAll(),
+      productModel.getProductImages(Number(req.params.id))
     ]);
     if (!item) return res.redirect('/admin/products');
-    return renderAdmin(res, 'admin/products/form', { item, categories, action: `/admin/products/${item.id}` });
+    return renderProductForm(res, {
+      item,
+      categories,
+      currentImages,
+      action: `/admin/products/${item.id}`
+    });
   } catch (error) { return next(error); }
 }
 
 async function productUpdate(req, res, next) {
   try {
-    await productModel.updateProduct(Number(req.params.id), {
-      category_id: Number(req.body.category_id),
-      name: (req.body.name || '').trim(),
-      slug: (req.body.slug || '').trim() || slugify(req.body.name),
-      description: (req.body.description || '').trim(),
-      sku: (req.body.sku || '').trim(),
-      price: Number(req.body.price || 0),
-      max_discount_percent: Number(req.body.max_discount_percent || 40),
-      stock_quantity: Number(req.body.stock_quantity || 0),
-      is_active: normalizeBool(req.body.is_active)
-    });
+    const productId = Number(req.params.id);
+    const isAjax = isAjaxRequest(req);
+    const [existingItem, categories, currentImages] = await Promise.all([
+      productModel.getProductById(productId),
+      catalogCategoryModel.getAll(),
+      productModel.getProductImages(productId)
+    ]);
+
+    if (!existingItem) {
+      if (isAjax) {
+        return res.status(404).json({ ok: false, message: 'РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ' });
+      }
+      return res.redirect('/admin/products');
+    }
+
+    const { errors, payload, item } = validateProductPayload(req.body, existingItem);
+    if (errors.length) {
+      if (isAjax) {
+        return res.status(422).json({ ok: false, message: errors[0], errors });
+      }
+      return renderProductForm(res, {
+        item: { ...existingItem, ...item, id: productId },
+        categories,
+        currentImages,
+        action: `/admin/products/${productId}`,
+        errors
+      }, 400);
+    }
+
+    const removeImageIds = getRemoveImageIds(req.body);
+    const removeImageIdSet = new Set(removeImageIds);
+    const removedImagePaths = currentImages
+      .filter((image) => removeImageIdSet.has(Number(image.id)))
+      .map((image) => image.image_path);
+    const imagesAfterRemove = currentImages.filter((image) => !removeImageIdSet.has(Number(image.id)));
+
+    let uploaded = {
+      primaryImagePath: '',
+      galleryImages: [],
+      savedPaths: []
+    };
+
+    try {
+      uploaded = await uploadProductImages(req.files, payload.name);
+      await productModel.updateProduct(productId, {
+        ...payload,
+        remove_image_ids: removeImageIds,
+        primary_image_path: uploaded.primaryImagePath,
+        primary_alt_text: payload.name,
+        gallery_images: uploaded.galleryImages
+      });
+
+      const replacedPrimaryPath = uploaded.primaryImagePath && imagesAfterRemove.length
+        ? imagesAfterRemove[0].image_path
+        : '';
+      removeUploadedFiles([...removedImagePaths, replacedPrimaryPath]);
+    } catch (error) {
+      removeUploadedFiles(uploaded.savedPaths);
+      if (isAjax) {
+        return res.status(400).json({ ok: false, message: getProductErrorMessage(error) });
+      }
+      return renderProductForm(res, {
+        item: { ...existingItem, ...item, id: productId },
+        categories,
+        currentImages,
+        action: `/admin/products/${productId}`,
+        errors: [getProductErrorMessage(error)]
+      }, 400);
+    }
+
+    if (isAjax) {
+      const updatedImages = await productModel.getProductImages(productId);
+      return res.json({
+        ok: true,
+        ...mapProductImagesForResponse(updatedImages)
+      });
+    }
+
+    if (req.body.delete_image_id) {
+      return res.redirect(`/admin/products/${productId}/edit`);
+    }
+
     return res.redirect('/admin/products');
   } catch (error) { return next(error); }
 }
 
 async function productDelete(req, res, next) {
   try {
-    await productModel.deleteProduct(Number(req.params.id));
+    const productId = Number(req.params.id);
+    const currentImages = await productModel.getProductImages(productId);
+    await productModel.deleteProduct(productId);
+    removeUploadedFiles(currentImages.map((image) => image.image_path));
     return res.redirect('/admin/products');
   } catch (error) { return next(error); }
 }
-
 async function discountsList(req, res, next) {
   try {
     const search = (req.query.search || '').trim();
@@ -202,7 +499,7 @@ async function discountCreate(req, res, next) {
         categories,
         products,
         action: '/admin/discounts',
-        errors: [error.message || 'Не удалось сохранить скидку']
+        errors: [error.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ СЃРєРёРґРєСѓ']
       });
     } catch (renderError) {
       return next(renderError);
@@ -276,7 +573,7 @@ async function discountUpdate(req, res, next) {
         categories,
         products,
         action: `/admin/discounts/${discountId}`,
-        errors: [error.message || 'Не удалось сохранить скидку']
+        errors: [error.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ СЃРєРёРґРєСѓ']
       });
     } catch (renderError) {
       return next(renderError);
@@ -538,11 +835,11 @@ function validateUserPayload(body, isCreate = false) {
   const canReviewProduct = normalizeBool(body.can_review_product);
   const canReviewStore = normalizeBool(body.can_review_store);
 
-  if (fullName.length < 2) errors.push('Имя должно быть не короче 2 символов');
-  if (!/^\S+@\S+\.\S+$/.test(email)) errors.push('Некорректный email');
-  if (!/^\+?[0-9\-\s()]{10,20}$/.test(phone)) errors.push('Некорректный телефон');
-  if (!roleCode) errors.push('Укажите роль');
-  if (isCreate && password.length < 6) errors.push('Пароль должен быть не короче 6 символов');
+  if (fullName.length < 2) errors.push('РРјСЏ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РЅРµ РєРѕСЂРѕС‡Рµ 2 СЃРёРјРІРѕР»РѕРІ');
+  if (!/^\S+@\S+\.\S+$/.test(email)) errors.push('РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ email');
+  if (!/^\+?[0-9\-\s()]{10,20}$/.test(phone)) errors.push('РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ С‚РµР»РµС„РѕРЅ');
+  if (!roleCode) errors.push('РЈРєР°Р¶РёС‚Рµ СЂРѕР»СЊ');
+  if (isCreate && password.length < 6) errors.push('РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РЅРµ РєРѕСЂРѕС‡Рµ 6 СЃРёРјРІРѕР»РѕРІ');
 
   return {
     errors,
@@ -563,10 +860,10 @@ async function userCreate(req, res, next) {
     const roles = await adminUserModel.listRoles();
     const { errors, payload } = validateUserPayload(req.body, true);
     const roleId = await adminUserModel.getRoleIdByCode(payload.roleCode);
-    if (!roleId) errors.push('Роль не найдена');
+    if (!roleId) errors.push('Р РѕР»СЊ РЅРµ РЅР°Р№РґРµРЅР°');
 
     const emailUsed = await adminUserModel.emailExists(payload.email);
-    if (emailUsed) errors.push('Пользователь с таким email уже существует');
+    if (emailUsed) errors.push('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј email СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚');
 
     if (errors.length) {
       return renderAdmin(res, 'admin/users/form', {
@@ -629,17 +926,17 @@ async function userUpdate(req, res, next) {
 
     const { errors, payload } = validateUserPayload(req.body, false);
     const roleId = await adminUserModel.getRoleIdByCode(payload.roleCode);
-    if (!roleId) errors.push('Роль не найдена');
+    if (!roleId) errors.push('Р РѕР»СЊ РЅРµ РЅР°Р№РґРµРЅР°');
 
       const emailUsed = await adminUserModel.emailExists(payload.email, userId);
-      if (emailUsed) errors.push('Пользователь с таким email уже существует');
+      if (emailUsed) errors.push('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј email СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚');
 
       if (req.session.user && req.session.user.id === userId) {
         if (payload.roleCode !== 'admin') {
-          errors.push('Администратор не может понизить свою роль');
+          errors.push('РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РЅРµ РјРѕР¶РµС‚ РїРѕРЅРёР·РёС‚СЊ СЃРІРѕСЋ СЂРѕР»СЊ');
         }
         if (!normalizeBool(req.body.is_active)) {
-          errors.push('Администратор не может отключить свой аккаунт');
+          errors.push('РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РЅРµ РјРѕР¶РµС‚ РѕС‚РєР»СЋС‡РёС‚СЊ СЃРІРѕР№ Р°РєРєР°СѓРЅС‚');
         }
       }
 
@@ -759,6 +1056,8 @@ module.exports = {
   userActivate,
   userHardDelete
 };
+
+
 
 
 

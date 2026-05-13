@@ -1,90 +1,115 @@
 ﻿<article class="product-page" data-product-id="{{product.id}}">
   <div class="product-gallery">
-    {{#if images.length}}
-      {{#each images}}
-        <img src="/uploads/{{image_path}}" alt="{{alt_text}}" class="product-image" onerror="this.onerror=null;this.src='/public/img/placeholder.svg';" />
-      {{/each}}
-    {{else}}
-      <img src="/public/img/placeholder.svg" alt="{{product.name}}" class="product-image" />
-    {{/if}}
+    <div class="product-slider" tabindex="0">
+      <div class="product-slider-track">
+        {{#if images.length}}
+          {{#each images}}
+            <figure class="product-slide">
+              <img src="/uploads/{{image_path}}" alt="{{#if alt_text}}{{alt_text}}{{else}}{{../product.name}}{{/if}}" class="product-image" onerror="this.onerror=null;this.src='/public/img/placeholder.svg';" />
+            </figure>
+          {{/each}}
+        {{else}}
+          <figure class="product-slide">
+            <img src="/public/img/placeholder.svg" alt="{{product.name}}" class="product-image" />
+          </figure>
+        {{/if}}
+      </div>
+
+      <button class="product-slider-arrow product-slider-arrow-prev" type="button" aria-label="РџСЂРµРґС‹РґСѓС‰РµРµ РёР·РѕР±СЂР°Р¶РµРЅРёРµ">&lsaquo;</button>
+      <button class="product-slider-arrow product-slider-arrow-next" type="button" aria-label="РЎР»РµРґСѓСЋС‰РµРµ РёР·РѕР±СЂР°Р¶РµРЅРёРµ">&rsaquo;</button>
+      <div class="product-slider-dots" aria-label="РќР°РІРёРіР°С†РёСЏ РїРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЏРј"></div>
+    </div>
   </div>
 
   <div class="product-meta">
     <h1>{{product.name}}</h1>
     <p>{{product.description}}</p>
     <p class="stock {{#if inStock}}in-stock{{else}}out-stock{{/if}}">
-      {{#if inStock}}В наличии: {{product.stock_quantity}}{{else}}Нет в наличии{{/if}}
+      {{#if inStock}}Р’ РЅР°Р»РёС‡РёРё: {{product.stock_quantity}}{{else}}РќРµС‚ РІ РЅР°Р»РёС‡РёРё{{/if}}
     </p>
 
     <div class="price-wrap">
-      <span class="old-price">{{formatCurrency product.price}}</span>
+      {{#if (gt pricing.finalDiscountPercent 0)}}
+        <span class="old-price">{{formatCurrency product.price}}</span>
+      {{/if}}
       <span class="new-price">{{formatCurrency pricing.finalPrice}}</span>
-      <span class="discount-badge">-{{pricing.finalDiscountPercent}}%</span>
+      {{#if (gt pricing.finalDiscountPercent 0)}}
+        <span class="discount-badge">-{{pricing.finalDiscountPercent}}%</span>
+      {{/if}}
     </div>
 
     <div class="cart-action {{#if (gt cart_qty 0)}}is-in-cart{{/if}}" data-product-id="{{product.id}}" data-stock="{{product.stock_quantity}}">
       <div class="btn add-to-cart {{#unless inStock}}is-disabled{{/unless}}" {{#unless inStock}}aria-disabled="true"{{/unless}} role="button" tabindex="0">
-        <span class="cart-label">{{#if (gt cart_qty 0)}}В корзине {{cart_qty}} шт.{{else}}Добавить в корзину{{/if}}</span>
+        <span class="cart-label">{{#if (gt cart_qty 0)}}Р’ РєРѕСЂР·РёРЅРµ {{cart_qty}} С€С‚.{{else}}Р”РѕР±Р°РІРёС‚СЊ РІ РєРѕСЂР·РёРЅСѓ{{/if}}</span>
         <div class="cart-quick-controls">
           <button type="button" class="btn qty-minus">-</button>
           <input type="number" class="qty-input" min="1" max="99" value="{{#if (gt cart_qty 0)}}{{cart_qty}}{{else}}1{{/if}}" />
           <button type="button" class="btn qty-plus">+</button>
-          <button type="button" class="btn qty-remove">Удалить</button>
+          <button type="button" class="btn qty-remove">РЈРґР°Р»РёС‚СЊ</button>
         </div>
       </div>
     </div>
 
-    <button type="button" class="btn add-to-wishlist {{#if is_wishlisted}}is-active{{/if}}" data-id="{{product.id}}" data-label-active="В избранном" data-label-inactive="В избранное">
-      {{#if is_wishlisted}}В избранном{{else}}В избранное{{/if}}
+    <button type="button" class="btn add-to-wishlist {{#if is_wishlisted}}is-active{{/if}}" data-id="{{product.id}}" data-label-active="Р’ РёР·Р±СЂР°РЅРЅРѕРј" data-label-inactive="Р’ РёР·Р±СЂР°РЅРЅРѕРµ">
+      {{#if is_wishlisted}}Р’ РёР·Р±СЂР°РЅРЅРѕРј{{else}}Р’ РёР·Р±СЂР°РЅРЅРѕРµ{{/if}}
     </button>
 
-    <h3>Примененные скидки</h3>
+    <h3>РџСЂРёРјРµРЅРµРЅРЅС‹Рµ СЃРєРёРґРєРё</h3>
     <ul>
       {{#if discounts.length}}
         {{#each discounts}}
           <li>{{name}} ({{discount_type}}: {{discount_value}})</li>
         {{/each}}
       {{else}}
-        <li>Скидки не применяются</li>
+        <li>РЎРєРёРґРєРё РЅРµ РїСЂРёРјРµРЅСЏСЋС‚СЃСЏ</li>
       {{/if}}
     </ul>
   </div>
 </article>
 
 <section class="card" style="margin-top: 18px;">
-  <h2>Отзывы о товаре</h2>
+  <h2>РћС‚Р·С‹РІС‹ Рѕ С‚РѕРІР°СЂРµ</h2>
   {{#if reviews.length}}
     <div class="reviews-list">
       {{#each reviews}}
         <article class="review-item">
-          <p><strong>{{full_name}}</strong> · Оценка: {{rating}}/5</p>
-          <p>{{comment_text}}</p>
+          <img src="{{#if avatar_path}}/uploads/{{avatar_path}}{{else}}/public/img/placeholder.svg{{/if}}" alt="{{full_name}}" class="review-author-avatar" onerror="this.onerror=null;this.src='/public/img/placeholder.svg';" />
+          <div class="review-body">
+            <p><strong>{{full_name}}</strong> · Оценка: {{rating}}/5</p>
+            <p>{{comment_text}}</p>
+          </div>
         </article>
       {{/each}}
     </div>
   {{else}}
-    <p>По этому товару пока нет отзывов.</p>
+    <p>РџРѕ СЌС‚РѕРјСѓ С‚РѕРІР°СЂСѓ РїРѕРєР° РЅРµС‚ РѕС‚Р·С‹РІРѕРІ.</p>
   {{/if}}
 </section>
 
 <section class="card" style="margin-top: 16px;">
-  <h2>Оставить отзыв</h2>
+  <h2>РћСЃС‚Р°РІРёС‚СЊ РѕС‚Р·С‹РІ</h2>
   {{#if reviewOk}}
-    <p class="in-stock">Отзыв сохранен.</p>
+    <p class="in-stock">РћС‚Р·С‹РІ СЃРѕС…СЂР°РЅРµРЅ.</p>
   {{/if}}
   {{#if reviewError}}
-    <p class="out-stock">Проверьте оценку и текст комментария (минимум 5 символов).</p>
+    <p class="out-stock">РџСЂРѕРІРµСЂСЊС‚Рµ РѕС†РµРЅРєСѓ Рё С‚РµРєСЃС‚ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ (РјРёРЅРёРјСѓРј 5 СЃРёРјРІРѕР»РѕРІ).</p>
+  {{/if}}
+  {{#if (eq reviewDeleted "1")}}
+    <p class="in-stock">РћС‚Р·С‹РІ СѓРґР°Р»РµРЅ.</p>
+  {{/if}}
+  {{#if (eq reviewDeleted "0")}}
+    <p class="out-stock">РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ РѕС‚Р·С‹РІ.</p>
   {{/if}}
   {{#if isAuth}}
     {{#if userReview}}
       <div class="user-review">
-        <h3>Ваш отзыв</h3>
+        <h3>Р’Р°С€ РѕС‚Р·С‹РІ</h3>
         <div class="review-item">
-          <p><strong>Оценка: {{userReview.rating}}/5</strong></p>
+          <p><strong>РћС†РµРЅРєР°: {{userReview.rating}}/5</strong></p>
           <p>{{userReview.comment_text}}</p>
         </div>
         <form class="form" method="post" action="/catalog/{{product.slug}}/reviews">
-          <label>Изменить оценку
+          <label>РР·РјРµРЅРёС‚СЊ РѕС†РµРЅРєСѓ
             <select name="rating" required>
               <option value="5" {{#if (eq userReview.rating 5)}}selected{{/if}}>5</option>
               <option value="4" {{#if (eq userReview.rating 4)}}selected{{/if}}>4</option>
@@ -93,16 +118,19 @@
               <option value="1" {{#if (eq userReview.rating 1)}}selected{{/if}}>1</option>
             </select>
           </label>
-          <label>Изменить комментарий
+          <label>РР·РјРµРЅРёС‚СЊ РєРѕРјРјРµРЅС‚Р°СЂРёР№
             <input type="text" name="comment_text" required minlength="5" maxlength="500" value="{{userReview.comment_text}}" />
           </label>
-          <button class="btn" type="submit">Обновить отзыв</button>
+          <div class="review-actions">
+            <button class="btn" type="submit">РћР±РЅРѕРІРёС‚СЊ РѕС‚Р·С‹РІ</button>
+            <button class="btn btn-secondary" type="submit" formaction="/catalog/{{product.slug}}/reviews/delete" formmethod="post">РЈРґР°Р»РёС‚СЊ РѕС‚Р·С‹РІ</button>
+          </div>
         </form>
       </div>
     {{else}}
       {{#if canReview}}
         <form class="form" method="post" action="/catalog/{{product.slug}}/reviews">
-          <label>Оценка
+          <label>РћС†РµРЅРєР°
             <select name="rating" required>
               <option value="5">5</option>
               <option value="4">4</option>
@@ -111,16 +139,17 @@
               <option value="1">1</option>
             </select>
           </label>
-          <label>Комментарий
+          <label>РљРѕРјРјРµРЅС‚Р°СЂРёР№
             <input type="text" name="comment_text" required minlength="5" maxlength="500" />
           </label>
-          <button class="btn" type="submit">Отправить отзыв</button>
+          <button class="btn" type="submit">РћС‚РїСЂР°РІРёС‚СЊ РѕС‚Р·С‹РІ</button>
         </form>
       {{else}}
-        <p>Отзыв доступен после заказа этого товара.</p>
+        <p>РћС‚Р·С‹РІ РґРѕСЃС‚СѓРїРµРЅ РїРѕСЃР»Рµ Р·Р°РєР°Р·Р° СЌС‚РѕРіРѕ С‚РѕРІР°СЂР°.</p>
       {{/if}}
     {{/if}}
   {{else}}
-    <p>Чтобы оставить отзыв, <a href="/auth/login">войдите в аккаунт</a>.</p>
+    <p>Р§С‚РѕР±С‹ РѕСЃС‚Р°РІРёС‚СЊ РѕС‚Р·С‹РІ, <a href="/auth/login">РІРѕР№РґРёС‚Рµ РІ Р°РєРєР°СѓРЅС‚</a>.</p>
   {{/if}}
 </section>
+

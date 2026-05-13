@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.get('/', catalogController.catalogPage);
 router.post('/:slug/reviews', requireAuth, reviewController.createProductReview);
+router.post('/:slug/reviews/delete', requireAuth, reviewController.deleteProductReview);
 router.get('/:slug/reviews', (req, res) => res.redirect(`/catalog/${req.params.slug}`));
 router.get('/:slug', catalogController.productPage);
 

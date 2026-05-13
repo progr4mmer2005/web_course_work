@@ -11,11 +11,17 @@
 
   <div class="profile-layout">
     <div class="card profile-avatar-box">
-      <img src="{{#if user.avatar_path}}/uploads/{{user.avatar_path}}{{else}}/public/img/placeholder.svg{{/if}}" alt="Аватар" class="profile-avatar" />
+      <img
+        src="{{#if user.avatar_path}}/uploads/{{user.avatar_path}}{{else}}/public/img/placeholder.svg{{/if}}"
+        alt="Аватар"
+        class="profile-avatar"
+        id="profile-avatar-preview"
+        data-has-avatar="{{#if user.avatar_path}}1{{else}}0{{/if}}"
+      />
       <p class="category">Роль: {{user.role_code}}</p>
     </div>
 
-    <form method="post" enctype="multipart/form-data" class="form card">
+    <form method="post" enctype="multipart/form-data" class="form card" data-profile-avatar-live="1">
       <label>ФИО
         <input type="text" name="full_name" value="{{user.full_name}}" required />
       </label>
@@ -26,10 +32,19 @@
         <input type="text" name="phone" value="{{user.phone}}" required />
       </label>
       <label>Аватар (jpg, jpeg, png, webp)
-        <input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp" />
+        <input type="hidden" name="remove_avatar" id="remove-avatar-input" value="0" />
+        <div class="profile-avatar-editor">
+          <label class="file-picker" for="profile-avatar-input">
+            <span class="file-picker-btn">Выбрать файл</span>
+            <input class="file-picker-input" type="file" name="avatar" id="profile-avatar-input" accept=".jpg,.jpeg,.png,.webp" />
+          </label>
+          <button class="btn btn-secondary" type="button" id="profile-avatar-remove-btn">Удалить изображение</button>
+        </div>
       </label>
-      <a class="btn btn-secondary" href="/profile/password">Перейти к смене пароля</a>
-      <button class="btn" type="submit">Сохранить изменения</button>
+      <div class="profile-form-actions">
+        <a class="btn btn-secondary" href="/profile/password">Перейти к смене пароля</a>
+        <button class="btn" type="submit">Сохранить изменения</button>
+      </div>
     </form>
   </div>
 

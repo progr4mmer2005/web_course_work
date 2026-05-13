@@ -7,9 +7,13 @@
     {{#if item.inStock}}В наличии: {{item.stock_quantity}}{{else}}Нет в наличии{{/if}}
   </p>
   <div class="price-wrap">
-    <span class="old-price">{{formatCurrency item.price}}</span>
+    {{#if (gt item.pricing.finalDiscountPercent 0)}}
+      <span class="old-price">{{formatCurrency item.price}}</span>
+    {{/if}}
     <span class="new-price">{{formatCurrency item.pricing.finalPrice}}</span>
-    <span class="discount-badge">-{{item.pricing.finalDiscountPercent}}%</span>
+    {{#if (gt item.pricing.finalDiscountPercent 0)}}
+      <span class="discount-badge">-{{item.pricing.finalDiscountPercent}}%</span>
+    {{/if}}
   </div>
 
   <div class="cart-action {{#if (gt item.cart_qty 0)}}is-in-cart{{/if}}" data-product-id="{{item.card_id}}" data-stock="{{item.stock_quantity}}">

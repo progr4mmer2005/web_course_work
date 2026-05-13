@@ -194,6 +194,7 @@ async function productPage(req, res, next) {
       userReview,
       reviewOk: String(req.query.review_ok || '') === '1',
       reviewError: String(req.query.review_error || '') === '1',
+      reviewDeleted: String(req.query.review_deleted || ''),
       pricing,
       cart_qty: Number(cartQtyMap[product.id] || 0),
       is_wishlisted: Boolean(wishlistMap[product.id]),

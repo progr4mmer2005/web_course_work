@@ -111,7 +111,54 @@ async function createStoreReview(req, res, next) {
   }
 }
 
+async function deleteProductReview(req, res, next) {
+  try {
+    if (!req.session.user) {
+      return res.status(403).render('partials/error', {
+        layout: 'main',
+        title: 'Нет доступа',
+        message: 'Для удаления отзыва нужно войти в аккаунт'
+      });
+    }
+
+    const product = await productModel.findBySlug(req.params.slug);
+    if (!product) {
+      return res.status(404).render('partials/error', {
+        layout: 'main',
+        title: 'Товар не найден',
+        message: 'Товар не найден'
+      });
+    }
+
+    const affectedRows = await reviewModel.deleteUserProductReview(req.session.user.id, product.id);
+    const flag = affectedRows > 0 ? '1' : '0';
+    return res.redirect(`/catalog/${product.slug}?review_deleted=${flag}`);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function deleteStoreReview(req, res, next) {
+  try {
+    if (!req.session.user) {
+      return res.status(403).render('partials/error', {
+        layout: 'main',
+        title: 'Нет доступа',
+        message: 'Для удаления отзыва нужно войти в аккаунт'
+      });
+    }
+
+    const affectedRows = await reviewModel.deleteUserStoreReview(req.session.user.id);
+    const flag = affectedRows > 0 ? '1' : '0';
+    return res.redirect(`/?store_review_deleted=${flag}`);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   createProductReview,
-  createStoreReview
+  createStoreReview,
+  deleteProductReview,
+  deleteStoreReview
 };

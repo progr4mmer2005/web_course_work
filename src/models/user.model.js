@@ -52,9 +52,16 @@ async function emailExistsForAnotherUser(email, userId) {
 }
 
 async function updateProfile(userId, { fullName, email, phone, avatarPath }) {
-  const hasAvatar = typeof avatarPath === 'string' && avatarPath.length > 0;
+  if (avatarPath === null) {
+    return db.query(
+      `UPDATE users
+       SET full_name = ?, email = ?, phone = ?, avatar_path = NULL, updated_at = NOW()
+       WHERE id = ?`,
+      [fullName, email, phone, userId]
+    );
+  }
 
-  if (hasAvatar) {
+  if (typeof avatarPath === 'string' && avatarPath.length > 0) {
     return db.query(
       `UPDATE users
        SET full_name = ?, email = ?, phone = ?, avatar_path = ?, updated_at = NOW()

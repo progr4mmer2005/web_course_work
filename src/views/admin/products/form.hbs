@@ -1,17 +1,34 @@
-﻿<section>
+<section>
+  <p class="admin-back-link"><a class="btn btn-secondary" href="/admin">Назад в админ-панель</a></p>
   <h1>{{#if item.id}}Редактировать товар{{else}}Новый товар{{/if}}</h1>
-  <form method="post" action="{{action}}" class="form card">
+
+  {{#if errors}}
+    <ul class="errors">
+      {{#each errors}}
+        <li>{{this}}</li>
+      {{/each}}
+    </ul>
+  {{/if}}
+
+  <form method="post" action="{{action}}" class="form card" enctype="multipart/form-data" data-product-images-live="1">
     <label>Название
       <input type="text" name="name" value="{{item.name}}" required />
     </label>
     <label>Slug
-      <input type="text" name="slug" value="{{item.slug}}" />
+      <div class="inline-field-row">
+        <input type="text" name="slug" id="slug-input" value="{{item.slug}}" />
+        <button class="btn btn-secondary" type="button" id="generate-slug-btn">Сгенерировать</button>
+      </div>
     </label>
     <label>SKU
-      <input type="text" name="sku" value="{{item.sku}}" required />
+      <div class="inline-field-row">
+        <input type="text" name="sku" id="sku-input" value="{{item.sku}}" />
+        <button class="btn btn-secondary" type="button" id="generate-sku-btn">Сгенерировать</button>
+      </div>
     </label>
     <label>Категория
       <select name="category_id" required>
+        <option value="">Выберите категорию</option>
         {{#each categories}}
           <option value="{{id}}" {{#if (eq id ../item.category_id)}}selected{{/if}}>{{name}}</option>
         {{/each}}
@@ -21,14 +38,76 @@
       <input type="text" name="description" value="{{item.description}}" />
     </label>
     <label>Цена
-      <input type="number" step="0.01" name="price" value="{{item.price}}" required />
+      <input type="number" step="0.01" min="0" name="price" value="{{item.price}}" required />
     </label>
     <label>Макс скидка %
-      <input type="number" step="0.01" name="max_discount_percent" value="{{item.max_discount_percent}}" required />
+      <input type="number" step="0.01" min="0" max="100" name="max_discount_percent" value="{{item.max_discount_percent}}" required />
     </label>
     <label>Остаток
-      <input type="number" name="stock_quantity" value="{{item.stock_quantity}}" required />
+      <input type="number" min="0" name="stock_quantity" value="{{item.stock_quantity}}" required />
     </label>
+
+    <div class="target-builder admin-image-sections">
+      <div class="admin-image-section">
+        <h3>Основная картинка</h3>
+        <p class="hint-text">Загрузить новую основную картинку (jpg, jpeg, png, webp)</p>
+        <label class="file-picker" for="primary-image-input">
+          <span class="file-picker-btn">Выбрать файл</span>
+          <input class="file-picker-input" type="file" name="primary_image" id="primary-image-input" accept=".jpg,.jpeg,.png,.webp" />
+        </label>
+      </div>
+
+      <div class="admin-image-section" id="admin-primary-image-section">
+        <h3>Превью основной</h3>
+        {{#if primaryImage}}
+          {{#if primaryImage.image_path}}
+            <article class="admin-image-card" data-existing="1" data-image-id="{{primaryImage.id}}" data-image-path="{{primaryImage.image_path}}" data-alt-text="{{primaryImage.alt_text}}">
+              <img src="/uploads/{{primaryImage.image_path}}" alt="{{primaryImage.alt_text}}" class="admin-image-thumb" onerror="this.onerror=null;this.src='/public/img/placeholder.svg';" />
+              <button class="btn btn-secondary js-image-remove" type="button" data-source="existing" data-kind="primary" data-image-id="{{primaryImage.id}}">Удалить изображение</button>
+            </article>
+          {{else}}
+            <article class="admin-image-card">
+              <img src="/public/img/placeholder.svg" alt="Изображение по умолчанию" class="admin-image-thumb" />
+              <p class="hint-text">Установлена картинка по умолчанию. Ее удалить нельзя.</p>
+            </article>
+          {{/if}}
+        {{else}}
+          <article class="admin-image-card">
+            <img src="/public/img/placeholder.svg" alt="Изображение по умолчанию" class="admin-image-thumb" />
+            <p class="hint-text">Установлена картинка по умолчанию. Ее удалить нельзя.</p>
+          </article>
+        {{/if}}
+      </div>
+
+      <div class="admin-image-section">
+        <h3>Галерея</h3>
+        <p class="hint-text">Добавить картинки в галерею (можно выбрать несколько файлов)</p>
+        <label class="file-picker" for="gallery-images-input">
+          <span class="file-picker-btn">Выбрать файлы</span>
+          <input class="file-picker-input" type="file" name="gallery_images" id="gallery-images-input" accept=".jpg,.jpeg,.png,.webp" multiple />
+        </label>
+      </div>
+
+      <div class="admin-image-section" id="admin-gallery-image-section">
+        <h3>Превью галереи</h3>
+        {{#if galleryImages.length}}
+          <div class="admin-image-stack">
+            {{#each galleryImages}}
+              <article class="admin-image-card" data-existing="1" data-image-id="{{id}}" data-image-path="{{image_path}}" data-alt-text="{{alt_text}}">
+                <img src="/uploads/{{image_path}}" alt="{{alt_text}}" class="admin-image-thumb" onerror="this.onerror=null;this.src='/public/img/placeholder.svg';" />
+                <button class="btn btn-secondary js-image-remove" type="button" data-source="existing" data-kind="gallery" data-image-id="{{id}}">Удалить изображение</button>
+              </article>
+            {{/each}}
+          </div>
+        {{else}}
+          <article class="admin-image-card">
+            <img src="/public/img/placeholder.svg" alt="Изображение по умолчанию" class="admin-image-thumb" />
+            <p class="hint-text">Картинок в галерее пока нет.</p>
+          </article>
+        {{/if}}
+      </div>
+    </div>
+
     <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" {{#if item.is_active}}checked{{/if}} /><span>Активен</span></label>
     <button class="btn" type="submit">Сохранить</button>
   </form>
