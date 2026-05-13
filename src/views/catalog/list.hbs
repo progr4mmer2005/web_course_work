@@ -26,6 +26,7 @@
       <input type="checkbox" name="in_stock" value="1" {{#if filters.onlyInStock}}checked{{/if}} />
       <span>Только в наличии</span>
     </label>
+    <input type="hidden" name="per_page" value="{{filters.perPage}}" />
     <button type="submit" class="btn">Применить</button>
     <a href="/catalog" class="btn btn-secondary">Сбросить</a>
   </form>
@@ -37,8 +38,38 @@
   {{/each}}
 </section>
 
-<nav class="pagination">
-  {{#if pagination.hasPrev}}<a href="{{pagination.prevLink}}">Назад</a>{{/if}}
-  <span>Страница {{pagination.page}} / {{pagination.totalPages}}</span>
-  {{#if pagination.hasNext}}<a href="{{pagination.nextLink}}">Вперед</a>{{/if}}
+<nav class="pagination catalog-pagination">
+  <div class="catalog-pagination-nav">
+    {{#if pagination.hasPrev}}<a href="{{pagination.prevLink}}">Назад</a>{{/if}}
+    <span>Страница {{pagination.page}} / {{pagination.totalPages}}</span>
+    {{#if pagination.hasNext}}<a href="{{pagination.nextLink}}">Вперед</a>{{/if}}
+  </div>
+
+  <form method="get" class="catalog-per-page-form" id="catalog-per-page-form">
+    <input type="hidden" name="page" value="{{pagination.page}}" />
+    <input type="hidden" name="prev_per_page" value="{{pagination.perPage}}" />
+    {{#if filters.q}}<input type="hidden" name="q" value="{{filters.q}}" />{{/if}}
+    {{#if filters.categoryId}}<input type="hidden" name="category_id" value="{{filters.categoryId}}" />{{/if}}
+    {{#if filters.priceFrom}}<input type="hidden" name="price_from" value="{{filters.priceFrom}}" />{{/if}}
+    {{#if filters.priceTo}}<input type="hidden" name="price_to" value="{{filters.priceTo}}" />{{/if}}
+    {{#if filters.minDiscount}}<input type="hidden" name="min_discount" value="{{filters.minDiscount}}" />{{/if}}
+    {{#if filters.sortPrice}}<input type="hidden" name="sort_price" value="{{filters.sortPrice}}" />{{/if}}
+    {{#if filters.sortDiscount}}<input type="hidden" name="sort_discount" value="{{filters.sortDiscount}}" />{{/if}}
+    <input type="hidden" name="in_stock" value="{{#if filters.onlyInStock}}1{{else}}0{{/if}}" />
+
+    <label class="catalog-per-page-label" for="catalog-per-page-range">
+      Товаров на странице: <strong id="catalog-per-page-value">{{pagination.perPage}}</strong>
+    </label>
+    <input
+      class="catalog-per-page-range"
+      id="catalog-per-page-range"
+      type="range"
+      name="per_page"
+      min="{{pagination.minPerPage}}"
+      max="{{pagination.maxPerPage}}"
+      value="{{pagination.perPage}}"
+      step="1"
+      aria-label="Количество товаров на странице"
+    />
+  </form>
 </nav>

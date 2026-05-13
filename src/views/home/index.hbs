@@ -60,6 +60,7 @@
 
 <section class="card" style="margin-top: 16px;">
   <h2>Оставить отзыв о магазине</h2>
+  <p class="category">Важно: оставить отзыв можно только после оформления хотя бы одного заказа.</p>
   {{#if reviewOk}}
     <p class="in-stock">Отзыв сохранен.</p>
   {{/if}}
@@ -100,21 +101,25 @@
         </form>
       </div>
     {{else}}
-      <form class="form" method="post" action="/reviews/store">
-        <label>Оценка
-          <select name="rating" required>
-            <option value="5">5</option>
-            <option value="4">4</option>
-            <option value="3">3</option>
-            <option value="2">2</option>
-            <option value="1">1</option>
-          </select>
-        </label>
-        <label>Комментарий
-          <input type="text" name="comment_text" required minlength="5" maxlength="500" />
-        </label>
-        <button class="btn" type="submit">Отправить отзыв</button>
-      </form>
+      {{#if canStoreReview}}
+        <form class="form" method="post" action="/reviews/store">
+          <label>Оценка
+            <select name="rating" required>
+              <option value="5">5</option>
+              <option value="4">4</option>
+              <option value="3">3</option>
+              <option value="2">2</option>
+              <option value="1">1</option>
+            </select>
+          </label>
+          <label>Комментарий
+            <input type="text" name="comment_text" required minlength="5" maxlength="500" />
+          </label>
+          <button class="btn" type="submit">Отправить отзыв</button>
+        </form>
+      {{else}}
+        <p class="out-stock">Вы пока не можете оставить отзыв: сначала нужно оформить хотя бы один заказ.</p>
+      {{/if}}
     {{/if}}
   {{else}}
     <p>Чтобы оставить отзыв, <a href="/auth/login">войдите в аккаунт</a>.</p>

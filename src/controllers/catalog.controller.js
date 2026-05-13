@@ -8,8 +8,22 @@ const { applyDiscountsToProduct } = require('../services/discount.service');
 
 async function catalogPage(req, res, next) {
   try {
-    const page = Number(req.query.page || 1);
-    const limit = 12;
+    const requestedPage = Number(req.query.page || 1);
+    let page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1;
+    const requestedPerPage = Number(req.query.per_page);
+    const limit = Number.isFinite(requestedPerPage)
+      ? Math.min(32, Math.max(4, Math.floor(requestedPerPage)))
+      : 12;
+    const prevPerPageRaw = Number(req.query.prev_per_page);
+    const hasPrevPerPage = Number.isFinite(prevPerPageRaw);
+    const prevPerPage = hasPrevPerPage ? Math.min(32, Math.max(4, Math.floor(prevPerPageRaw))) : null;
+
+    // Preserve browsing progress when changing per-page:
+    // keep the first visible item from previous page in view.
+    if (hasPrevPerPage && prevPerPage && prevPerPage !== limit) {
+      const firstVisibleIndex = (page - 1) * prevPerPage;
+      page = Math.floor(firstVisibleIndex / limit) + 1;
+    }
 
     const categoryId = req.query.category_id || '';
     const q = (req.query.q || '').trim();
@@ -31,7 +45,8 @@ async function catalogPage(req, res, next) {
       priceTo,
       minDiscount,
       sortPrice,
-      sortDiscount
+      sortDiscount,
+      perPage: limit
     };
 
     const [catalog, categories, cartQtyMap, wishlistMap] = await Promise.all([
@@ -114,6 +129,7 @@ async function catalogPage(req, res, next) {
       if (q) search.set('q', q);
       if (categoryId) search.set('category_id', categoryId);
       search.set('in_stock', filters.onlyInStock ? '1' : '0');
+      search.set('per_page', String(limit));
       if (priceFrom !== '') search.set('price_from', String(priceFrom));
       if (priceTo !== '') search.set('price_to', String(priceTo));
       if (minDiscount !== '') search.set('min_discount', String(minDiscount));
@@ -132,6 +148,9 @@ async function catalogPage(req, res, next) {
       pagination: {
         page: safePage,
         totalPages,
+        perPage: limit,
+        minPerPage: 4,
+        maxPerPage: 32,
         hasPrev: safePage > 1,
         hasNext: safePage < totalPages,
         prevLink: buildQuery(safePage - 1),

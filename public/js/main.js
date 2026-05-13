@@ -362,6 +362,31 @@
   syncFilterSelectState();
   $(document).on('change', '.filters select', syncFilterSelectState);
 
+  function initCatalogPerPageSlider() {
+    const $form = $('#catalog-per-page-form');
+    const $range = $('#catalog-per-page-range');
+    const $value = $('#catalog-per-page-value');
+
+    if (!$form.length || !$range.length || !$value.length) return;
+
+    function updateView() {
+      const min = Number($range.attr('min') || 4);
+      const max = Number($range.attr('max') || 32);
+      const current = Number($range.val() || min);
+      const safeCurrent = Math.max(min, Math.min(max, current));
+      const percent = ((safeCurrent - min) / (max - min)) * 100;
+
+      $value.text(safeCurrent);
+      $range.css('--range-percent', `${percent}%`);
+    }
+
+    updateView();
+    $range.on('input', updateView);
+    $range.on('change', function () {
+      $form.trigger('submit');
+    });
+  }
+
   $(document).on('click', '.cart-promo-add', function () {
     const $input = $('#cart-promo-input');
     const code = String($input.val() || '').trim();
@@ -927,4 +952,5 @@
   initAdminSlugSkuGenerator();
   initProfileAvatarLive();
   initProductSlider();
+  initCatalogPerPageSlider();
 });

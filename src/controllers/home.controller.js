@@ -32,13 +32,14 @@ async function homePage(req, res, next) {
   try {
     const user = req.session.user ? await userModel.findById(req.session.user.id) : null;
 
-    const [recentStoreReviews, popularRaw, discountedRaw, cartQtyMap, wishlistMap, userStoreReview] = await Promise.all([
+    const [recentStoreReviews, popularRaw, discountedRaw, cartQtyMap, wishlistMap, userStoreReview, canStoreReview] = await Promise.all([
       reviewModel.getRecentStoreReviews(6),
       homeModel.getPopularProducts(8),
       homeModel.getDiscountedProducts(8),
       user ? cartModel.getQuantityMap(user.id) : Promise.resolve({}),
       user ? wishlistModel.getProductIdsMap(user.id) : Promise.resolve({}),
-      user ? reviewModel.getUserStoreReview(user.id) : Promise.resolve(null)
+      user ? reviewModel.getUserStoreReview(user.id) : Promise.resolve(null),
+      user ? reviewModel.hasDeliveredAnyOrder(user.id) : Promise.resolve(false)
     ]);
 
     if (user) {
@@ -63,6 +64,7 @@ async function homePage(req, res, next) {
       storeReviewDeleteError: String(req.query.store_review_deleted || '') === '0',
       recentStoreReviews,
       userStoreReview,
+      canStoreReview,
       popularProducts,
       discountedProducts
     });
