@@ -1,6 +1,7 @@
-﻿<section>
+<section data-admin-users-list="1" data-actor-is-chief-admin="{{#if actor_is_chief_admin}}1{{else}}0{{/if}}">
   <p class="admin-back-link"><a class="btn btn-secondary" href="/admin">Назад в админ-панель</a></p>
   <h1>Пользователи</h1>
+
   <form method="get" class="filters">
     <input type="text" name="search" value="{{search}}" placeholder="Поиск (имя, email, телефон)" />
     <select name="role">
@@ -13,40 +14,68 @@
     <a class="btn" href="/admin/users/new">Добавить</a>
   </form>
 
-  <table class="admin-table">
+  <div class="admin-table-wrap">
+    <table class="admin-table">
     <thead><tr><th>ID</th><th>Имя</th><th>Email</th><th>Телефон</th><th>Роль</th><th>Активен</th><th>Отзывы товар/магазин</th><th>Действия</th></tr></thead>
     <tbody>
       {{#each items}}
-        <tr>
+        <tr data-user-row="1" data-user-id="{{id}}" data-role-code="{{role_code}}" data-is-active="{{#if is_active}}1{{else}}0{{/if}}" data-is-chief-admin="{{#if is_chief_admin}}1{{else}}0{{/if}}">
           <td>{{id}}</td>
-          <td>{{full_name}}</td>
+          <td>
+            {{full_name}}
+            {{#if is_chief_admin}}<br /><small><strong>Главный админ</strong></small>{{/if}}
+          </td>
           <td>{{email}}</td>
           <td>{{phone}}</td>
-          <td>{{role_name}}</td>
-          <td>{{#if is_active}}Да{{else}}Нет{{/if}}</td>
+          <td data-role-name>{{role_name}}</td>
+          <td data-active-text>{{#if is_active}}Да{{else}}Нет{{/if}}</td>
           <td>
             {{#if can_review_product}}Да{{else}}Нет{{/if}} / {{#if can_review_store}}Да{{else}}Нет{{/if}}
           </td>
           <td>
             <a class="btn" href="/admin/users/{{id}}/edit">Изменить</a>
+
             {{#if is_active}}
-              <form class="inline-form" method="post" action="/admin/users/{{id}}/delete">
-                <button class="btn" type="submit">Отключить</button>
-              </form>
+              {{#if is_chief_admin}}
+                <button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Главного администратора нельзя блокировать">Отключить</button>
+              {{else}}
+                {{#if (eq role_code "admin")}}
+                  <button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Чтобы заблокировать администратора, сначала разжалуйте его до клиента">Отключить</button>
+                {{else}}
+                  {{#if (eq role_code "manager")}}
+                    <button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Чтобы заблокировать менеджера, сначала разжалуйте его до клиента">Отключить</button>
+                  {{else}}
+                    <form class="inline-form js-admin-user-action" method="post" action="/admin/users/{{id}}/delete">
+                      <button class="btn" type="submit">Отключить</button>
+                    </form>
+                  {{/if}}
+                {{/if}}
+              {{/if}}
             {{else}}
-              <form class="inline-form" method="post" action="/admin/users/{{id}}/activate">
+              <form class="inline-form js-admin-user-action" method="post" action="/admin/users/{{id}}/activate">
                 <button class="btn" type="submit">Включить</button>
               </form>
             {{/if}}
-            <form class="inline-form" method="post" action="/admin/users/{{id}}/hard-delete">
-              <button class="btn" type="submit">Удалить</button>
-            </form>
+
+            {{#if is_chief_admin}}
+              <button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Главного администратора нельзя удалить">Удалить</button>
+            {{else}}
+              {{#if (eq role_code "admin")}}
+                <button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Чтобы удалить администратора, сначала разжалуйте его до клиента">Удалить</button>
+              {{else}}
+                {{#if (eq role_code "manager")}}
+                  <button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Чтобы удалить менеджера, сначала разжалуйте его до клиента">Удалить</button>
+                {{else}}
+                  <form class="inline-form js-admin-user-action" method="post" action="/admin/users/{{id}}/hard-delete" data-confirm-message="Удалить пользователя полностью? Это действие необратимо.">
+                    <button class="btn" type="submit">Удалить</button>
+                  </form>
+                {{/if}}
+              {{/if}}
+            {{/if}}
           </td>
         </tr>
       {{/each}}
     </tbody>
-  </table>
+    </table>
+  </div>
 </section>
-
-
-

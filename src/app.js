@@ -7,6 +7,7 @@ const { engine } = require('express-handlebars');
 const hbsHelpers = require('./config/hbsHelpers');
 const sessionMiddleware = require('./config/session');
 const attachCurrentUser = require('./middlewares/currentUser.middleware');
+const requestLogger = require('./middlewares/requestLogger.middleware');
 const routes = require('./routes');
 const { notFound, errorHandler } = require('./middlewares/error.middleware');
 
@@ -23,6 +24,10 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(fileUpload());
+
+if (process.env.LOG_REQUESTS === 'true') {
+  app.use(requestLogger);
+}
 app.use(sessionMiddleware);
 app.use(attachCurrentUser);
 

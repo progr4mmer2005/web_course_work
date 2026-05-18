@@ -172,6 +172,23 @@ function getProductErrorMessage(error) {
   return error?.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ С‚РѕРІР°СЂ';
 }
 
+function getSingleUploadFile(input) {
+  if (!input) return null;
+  return Array.isArray(input) ? input[0] : input;
+}
+
+async function saveUserAvatarFile(file, userId = 0) {
+  const ext = ensureImageFile(file);
+  const targetDir = path.join(process.cwd(), 'uploads', 'avatars');
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const safeUserId = Number(userId) > 0 ? Number(userId) : 'new';
+  const filename = `user_${safeUserId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+  const targetPath = path.join(targetDir, filename);
+  await file.mv(targetPath);
+  return `avatars/${filename}`;
+}
+
 function isAjaxRequest(req) {
   return req.get('X-Requested-With') === 'XMLHttpRequest';
 }
@@ -801,15 +818,98 @@ async function dispatchAssign(req, res, next) {
   } catch (error) { return next(error); }
 }
 
+function isPrivilegedRole(roleCode) {
+  return roleCode === 'admin' || roleCode === 'manager';
+}
+
+function isChiefAdminId(userId, chiefAdmin) {
+  return Boolean(chiefAdmin) && Number(chiefAdmin.id) === Number(userId);
+}
+
+function getTargetRowMeta(targetUser, chiefAdmin) {
+  if (!targetUser) return {};
+  return {
+    id: Number(targetUser.id),
+    role_code: targetUser.role_code,
+    is_active: Number(targetUser.is_active) ? 1 : 0,
+    is_chief_admin: isChiefAdminId(targetUser.id, chiefAdmin)
+  };
+}
+
+function sendUserActionResult(req, res, {
+  ok,
+  message = '',
+  status = 200,
+  redirectTo = '/admin/users',
+  data = {}
+}) {
+  if (isAjaxRequest(req)) {
+    return res.status(status).json({ ok, message, data });
+  }
+  return res.redirect(redirectTo);
+}
+
+function getUpdateRestriction({ actorUser, targetUser, roleCode, isActive, chiefAdmin }) {
+  const roleChanged = roleCode !== targetUser.role_code;
+
+  if (isChiefAdminId(targetUser.id, chiefAdmin)) {
+    if (roleChanged) return 'Роль главного администратора менять нельзя';
+    if (!isActive) return 'Главного администратора нельзя заблокировать';
+  }
+
+  if (!isActive && isPrivilegedRole(targetUser.role_code)) {
+    return 'Чтобы заблокировать администратора или менеджера, сначала разжалуйте его до клиента';
+  }
+
+  if (actorUser && Number(actorUser.id) === Number(targetUser.id)) {
+    if (roleCode !== 'admin') {
+      return 'Администратор не может понизить свою роль';
+    }
+    if (!isActive) {
+      return 'Администратор не может отключить свой аккаунт';
+    }
+  }
+
+  return '';
+}
+
+function getDeleteRestriction(targetUser) {
+  if (targetUser.is_chief_admin) {
+    return 'Главного администратора нельзя удалить или заблокировать';
+  }
+
+  if (isPrivilegedRole(targetUser.role_code)) {
+    return 'Чтобы удалить или заблокировать администратора/менеджера, сначала разжалуйте его до клиента';
+  }
+
+  return '';
+}
+
 async function usersList(req, res, next) {
   try {
     const search = (req.query.search || '').trim();
     const role = (req.query.role || '').trim();
-    const [items, roles] = await Promise.all([
+    const [items, roles, chiefAdmin, actorUser] = await Promise.all([
       adminUserModel.listUsers(search, role),
-      adminUserModel.listRoles()
+      adminUserModel.listRoles(),
+      adminUserModel.getChiefAdmin(),
+      req.session.user?.id ? adminUserModel.getUserById(Number(req.session.user.id)) : Promise.resolve(null)
     ]);
-    return renderAdmin(res, 'admin/users/list', { items, search, role, roles });
+
+    const mappedItems = items.map((item) => {
+      return {
+        ...item,
+        is_chief_admin: isChiefAdminId(item.id, chiefAdmin)
+      };
+    });
+
+    return renderAdmin(res, 'admin/users/list', {
+      items: mappedItems,
+      search,
+      role,
+      roles,
+      actor_is_chief_admin: isChiefAdminId(actorUser?.id, chiefAdmin)
+    });
   } catch (error) { return next(error); }
 }
 
@@ -817,7 +917,7 @@ async function userNewForm(req, res, next) {
   try {
     const roles = await adminUserModel.listRoles();
     return renderAdmin(res, 'admin/users/form', {
-      item: { is_active: 1, role_code: 'client', can_review_product: 1, can_review_store: 1 },
+      item: { is_active: 1, role_code: 'client', can_review_product: 1, can_review_store: 1, avatar_path: '' },
       roles,
       action: '/admin/users',
       isCreate: true
@@ -865,13 +965,25 @@ async function userCreate(req, res, next) {
     const emailUsed = await adminUserModel.emailExists(payload.email);
     if (emailUsed) errors.push('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј email СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚');
 
+    let uploadedAvatarPath = '';
+    const avatarFile = getSingleUploadFile(req.files?.avatar);
+    if (avatarFile) {
+      try {
+        uploadedAvatarPath = await saveUserAvatarFile(avatarFile);
+      } catch (error) {
+        errors.push(error.message || 'Не удалось загрузить аватар');
+      }
+    }
+
     if (errors.length) {
+      if (uploadedAvatarPath) removeUploadedFiles([uploadedAvatarPath]);
       return renderAdmin(res, 'admin/users/form', {
         item: {
           full_name: payload.fullName,
           email: payload.email,
           phone: payload.phone,
           role_code: payload.roleCode,
+          avatar_path: '',
           is_active: normalizeBool(req.body.is_active),
           can_review_product: payload.canReviewProduct,
           can_review_store: payload.canReviewStore
@@ -889,6 +1001,7 @@ async function userCreate(req, res, next) {
       full_name: payload.fullName,
       email: payload.email,
         phone: payload.phone,
+        avatar_path: uploadedAvatarPath || null,
         password_hash: passwordHash,
         is_active: normalizeBool(req.body.is_active),
         can_review_product: payload.canReviewProduct,
@@ -901,16 +1014,24 @@ async function userCreate(req, res, next) {
 
 async function userEditForm(req, res, next) {
   try {
-    const [item, roles] = await Promise.all([
-      adminUserModel.getUserById(Number(req.params.id)),
-      adminUserModel.listRoles()
+    const userId = Number(req.params.id);
+    const [item, roles, chiefAdmin, actorUser] = await Promise.all([
+      adminUserModel.getUserById(userId),
+      adminUserModel.listRoles(),
+      adminUserModel.getChiefAdmin(),
+      req.session.user?.id ? adminUserModel.getUserById(Number(req.session.user.id)) : Promise.resolve(null)
     ]);
     if (!item) return res.redirect('/admin/users');
+
+    const isChiefAdminTarget = isChiefAdminId(item.id, chiefAdmin);
+
     return renderAdmin(res, 'admin/users/form', {
       item,
       roles,
       action: `/admin/users/${item.id}`,
-      isCreate: false
+      isCreate: false,
+      is_chief_admin_target: isChiefAdminTarget,
+      actor_is_chief_admin: isChiefAdminId(actorUser?.id, chiefAdmin)
     });
   } catch (error) { return next(error); }
 }
@@ -918,9 +1039,11 @@ async function userEditForm(req, res, next) {
 async function userUpdate(req, res, next) {
   try {
     const userId = Number(req.params.id);
-    const [item, roles] = await Promise.all([
-      adminUserModel.getUserById(userId),
-      adminUserModel.listRoles()
+    const [item, roles, actorUser, chiefAdmin] = await Promise.all([
+      adminUserModel.getUserById(Number(req.params.id)),
+      adminUserModel.listRoles(),
+      req.session.user?.id ? adminUserModel.getUserById(Number(req.session.user.id)) : Promise.resolve(null),
+      adminUserModel.getChiefAdmin()
     ]);
     if (!item) return res.redirect('/admin/users');
 
@@ -931,16 +1054,30 @@ async function userUpdate(req, res, next) {
       const emailUsed = await adminUserModel.emailExists(payload.email, userId);
       if (emailUsed) errors.push('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј email СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚');
 
-      if (req.session.user && req.session.user.id === userId) {
-        if (payload.roleCode !== 'admin') {
-          errors.push('РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РЅРµ РјРѕР¶РµС‚ РїРѕРЅРёР·РёС‚СЊ СЃРІРѕСЋ СЂРѕР»СЊ');
-        }
-        if (!normalizeBool(req.body.is_active)) {
-          errors.push('РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РЅРµ РјРѕР¶РµС‚ РѕС‚РєР»СЋС‡РёС‚СЊ СЃРІРѕР№ Р°РєРєР°СѓРЅС‚');
+      const isActive = normalizeBool(req.body.is_active);
+      const removeAvatar = normalizeBool(req.body.remove_avatar);
+      let uploadedAvatarPath = '';
+      const avatarFile = getSingleUploadFile(req.files?.avatar);
+      if (avatarFile) {
+        try {
+          uploadedAvatarPath = await saveUserAvatarFile(avatarFile, userId);
+        } catch (error) {
+          errors.push(error.message || 'Не удалось загрузить аватар');
         }
       }
 
+      const restrictionMessage = getUpdateRestriction({
+        actorUser,
+        targetUser: item,
+        roleCode: payload.roleCode,
+        isActive,
+        chiefAdmin
+      });
+      if (restrictionMessage) errors.push(restrictionMessage);
+
     if (errors.length) {
+      if (uploadedAvatarPath) removeUploadedFiles([uploadedAvatarPath]);
+      const isChiefAdminTarget = isChiefAdminId(item.id, chiefAdmin);
       return renderAdmin(res, 'admin/users/form', {
         item: {
           ...item,
@@ -955,6 +1092,8 @@ async function userUpdate(req, res, next) {
         roles,
         action: `/admin/users/${userId}`,
         isCreate: false,
+        is_chief_admin_target: isChiefAdminTarget,
+        actor_is_chief_admin: isChiefAdminId(actorUser?.id, chiefAdmin),
         errors
       });
     }
@@ -964,16 +1103,30 @@ async function userUpdate(req, res, next) {
       passwordHash = await bcrypt.hash(payload.password, 10);
     }
 
+    let avatarPathForUpdate;
+    if (uploadedAvatarPath) {
+      avatarPathForUpdate = uploadedAvatarPath;
+    } else if (removeAvatar) {
+      avatarPathForUpdate = null;
+    } else {
+      avatarPathForUpdate = undefined;
+    }
+
     await adminUserModel.updateUser(userId, {
       role_id: roleId,
       full_name: payload.fullName,
       email: payload.email,
         phone: payload.phone,
-        is_active: normalizeBool(req.body.is_active),
+        avatar_path: avatarPathForUpdate,
+        is_active: isActive,
         can_review_product: payload.canReviewProduct,
         can_review_store: payload.canReviewStore,
         password_hash: passwordHash
       });
+
+    if ((uploadedAvatarPath || removeAvatar) && item.avatar_path) {
+      removeUploadedFiles([item.avatar_path]);
+    }
 
     return res.redirect('/admin/users');
   } catch (error) { return next(error); }
@@ -982,30 +1135,113 @@ async function userUpdate(req, res, next) {
 async function userDelete(req, res, next) {
   try {
     const userId = Number(req.params.id);
-    if (req.session.user && req.session.user.id === userId) {
-      return res.redirect('/admin/users');
+    const [targetUser, chiefAdmin] = await Promise.all([
+      adminUserModel.getUserById(userId),
+      adminUserModel.getChiefAdmin()
+    ]);
+
+    if (!targetUser) {
+      return sendUserActionResult(req, res, {
+        ok: false,
+        message: 'Пользователь не найден',
+        status: 404
+      });
     }
+
+    if (req.session.user && req.session.user.id === userId) {
+      return sendUserActionResult(req, res, {
+        ok: false,
+        message: 'Нельзя заблокировать самого себя',
+        status: 422
+      });
+    }
+
+    targetUser.is_chief_admin = isChiefAdminId(targetUser.id, chiefAdmin);
+    const restrictionMessage = getDeleteRestriction(targetUser);
+    if (restrictionMessage) {
+      return sendUserActionResult(req, res, {
+        ok: false,
+        message: restrictionMessage,
+        status: 422,
+        data: { row: getTargetRowMeta(targetUser, chiefAdmin) }
+      });
+    }
+
     await adminUserModel.setUserActive(userId, false);
-    return res.redirect('/admin/users');
+    const updatedUser = await adminUserModel.getUserById(userId);
+    return sendUserActionResult(req, res, {
+      ok: true,
+      message: 'Пользователь отключен',
+      data: { row: getTargetRowMeta(updatedUser || targetUser, chiefAdmin) }
+    });
   } catch (error) { return next(error); }
 }
 
 async function userActivate(req, res, next) {
   try {
     const userId = Number(req.params.id);
+    const [targetUser, chiefAdmin] = await Promise.all([
+      adminUserModel.getUserById(userId),
+      adminUserModel.getChiefAdmin()
+    ]);
+    if (!targetUser) {
+      return sendUserActionResult(req, res, {
+        ok: false,
+        message: 'Пользователь не найден',
+        status: 404
+      });
+    }
     await adminUserModel.setUserActive(userId, true);
-    return res.redirect('/admin/users');
+    const updatedUser = await adminUserModel.getUserById(userId);
+    return sendUserActionResult(req, res, {
+      ok: true,
+      message: 'Пользователь включен',
+      data: { row: getTargetRowMeta(updatedUser || targetUser, chiefAdmin) }
+    });
   } catch (error) { return next(error); }
 }
 
 async function userHardDelete(req, res, next) {
   try {
     const userId = Number(req.params.id);
-    if (req.session.user && req.session.user.id === userId) {
-      return res.redirect('/admin/users');
+    const [targetUser, chiefAdmin] = await Promise.all([
+      adminUserModel.getUserById(userId),
+      adminUserModel.getChiefAdmin()
+    ]);
+
+    if (!targetUser) {
+      return sendUserActionResult(req, res, {
+        ok: false,
+        message: 'Пользователь не найден',
+        status: 404
+      });
     }
+
+    if (req.session.user && req.session.user.id === userId) {
+      return sendUserActionResult(req, res, {
+        ok: false,
+        message: 'Нельзя удалить самого себя',
+        status: 422
+      });
+    }
+
+    targetUser.is_chief_admin = isChiefAdminId(targetUser.id, chiefAdmin);
+    const restrictionMessage = getDeleteRestriction(targetUser);
+    if (restrictionMessage) {
+      return sendUserActionResult(req, res, {
+        ok: false,
+        message: restrictionMessage,
+        status: 422,
+        data: { row: getTargetRowMeta(targetUser, chiefAdmin) }
+      });
+    }
+
     await adminUserModel.hardDeleteUser(userId);
-    return res.redirect('/admin/users');
+    return sendUserActionResult(req, res, {
+      ok: true,
+      message: 'Пользователь удален',
+      data: { deleted_id: userId }
+    });
   } catch (error) { return next(error); }
 }
 module.exports = {

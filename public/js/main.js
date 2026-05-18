@@ -522,6 +522,9 @@
   });
 
   $(document).on('submit', 'form[action*="/admin/"][action*="/delete"], form[action*="/admin/"][action*="/hard-delete"]', function (e) {
+    if ($(this).hasClass('js-admin-user-action')) {
+      return;
+    }
     const action = $(this).attr('action') || '';
     const hardDelete = action.includes('/hard-delete');
     const message = hardDelete
@@ -531,6 +534,222 @@
       e.preventDefault();
     }
   });
+
+  function ensureAdminActionAlertModal() {
+    if ($('#admin-action-alert').length) return;
+
+    const html = `
+      <div id="admin-action-alert" class="admin-action-alert" aria-hidden="true">
+        <div class="admin-action-alert-card" role="alertdialog" aria-modal="true" aria-labelledby="admin-action-alert-title">
+          <h3 id="admin-action-alert-title" class="admin-action-alert-title">Уведомление</h3>
+          <p id="admin-action-alert-text" class="admin-action-alert-text"></p>
+          <div class="admin-action-alert-actions">
+            <button type="button" id="admin-action-alert-ok" class="btn">Ок</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    $('body').append(html);
+
+    function closeAlert() {
+      const $modal = $('#admin-action-alert');
+      $modal.removeClass('is-open');
+      $modal.attr('aria-hidden', 'true');
+    }
+
+    $(document).on('click', '#admin-action-alert-ok', function () {
+      closeAlert();
+    });
+
+    $(document).on('click', '#admin-action-alert', function (event) {
+      if (event.target === this) {
+        closeAlert();
+      }
+    });
+
+    $(document).on('keydown', function (event) {
+      if (event.key === 'Escape' && $('#admin-action-alert').hasClass('is-open')) {
+        closeAlert();
+      }
+    });
+  }
+
+  function showAdminActionAlert(text, type) {
+    ensureAdminActionAlertModal();
+
+    const safeText = String(text || '').trim() || 'Действие недоступно';
+    const safeType = type === 'success' ? 'success' : 'error';
+    const title = safeType === 'success' ? 'Готово' : 'Ограничение';
+
+    const $modal = $('#admin-action-alert');
+    $modal.removeClass('is-success is-error').addClass(`is-${safeType}`);
+    $modal.attr('aria-hidden', 'false');
+    $modal.addClass('is-open');
+    $modal.find('#admin-action-alert-title').text(title);
+    $modal.find('#admin-action-alert-text').text(safeText);
+    $modal.find('#admin-action-alert-ok').trigger('focus');
+  }
+
+  function buildAdminUserActionHtml(rowData) {
+    const userId = Number(rowData.id || 0);
+    const roleCode = String(rowData.role_code || '');
+    const isActive = Number(rowData.is_active) === 1;
+    const isChiefAdmin = Number(rowData.is_chief_admin) === 1;
+
+    const editHtml = `<a class="btn" href="/admin/users/${userId}/edit">Изменить</a>`;
+    let toggleHtml = '';
+    let deleteHtml = '';
+
+    if (isActive) {
+      if (isChiefAdmin) {
+        toggleHtml = '<button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Главного администратора нельзя блокировать">Отключить</button>';
+      } else if (roleCode === 'admin') {
+        toggleHtml = '<button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Чтобы заблокировать администратора, сначала разжалуйте его до клиента">Отключить</button>';
+      } else if (roleCode === 'manager') {
+        toggleHtml = '<button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Чтобы заблокировать менеджера, сначала разжалуйте его до клиента">Отключить</button>';
+      } else {
+        toggleHtml = `<form class="inline-form js-admin-user-action" method="post" action="/admin/users/${userId}/delete"><button class="btn" type="submit">Отключить</button></form>`;
+      }
+    } else {
+      toggleHtml = `<form class="inline-form js-admin-user-action" method="post" action="/admin/users/${userId}/activate"><button class="btn" type="submit">Включить</button></form>`;
+    }
+
+    if (isChiefAdmin) {
+      deleteHtml = '<button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Главного администратора нельзя удалить">Удалить</button>';
+    } else if (roleCode === 'admin') {
+      deleteHtml = '<button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Чтобы удалить администратора, сначала разжалуйте его до клиента">Удалить</button>';
+    } else if (roleCode === 'manager') {
+      deleteHtml = '<button class="btn btn-secondary btn-locked js-admin-user-denied" type="button" data-deny-reason="Чтобы удалить менеджера, сначала разжалуйте его до клиента">Удалить</button>';
+    } else {
+      deleteHtml = `<form class="inline-form js-admin-user-action" method="post" action="/admin/users/${userId}/hard-delete" data-confirm-message="Удалить пользователя полностью? Это действие необратимо."><button class="btn" type="submit">Удалить</button></form>`;
+    }
+
+    return `${editHtml}${toggleHtml}${deleteHtml}`;
+  }
+
+  function initAdminUsersListLive() {
+    const $section = $('[data-admin-users-list="1"]');
+    if (!$section.length) return;
+
+    $(document).on('click', '.js-admin-user-denied', function () {
+      const reason = String($(this).attr('data-deny-reason') || 'Это действие запрещено');
+      showAdminActionAlert(reason, 'error');
+    });
+
+    $(document).on('submit', '.js-admin-user-action', function (e) {
+      e.preventDefault();
+      const $form = $(this);
+      const action = String($form.attr('action') || '');
+      const confirmMessage = String($form.attr('data-confirm-message') || '');
+
+      if (confirmMessage && !window.confirm(confirmMessage)) {
+        return;
+      }
+
+      const $btn = $form.find('button[type="submit"]');
+      $btn.prop('disabled', true);
+
+      $.ajax({
+        url: action,
+        method: 'POST',
+        data: $form.serialize(),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      }).done(function (response) {
+        if (!response || !response.ok) {
+          showAdminActionAlert(response?.message || 'Не удалось выполнить действие', 'error');
+          return;
+        }
+
+        const deletedId = Number(response.data?.deleted_id || 0);
+        if (deletedId) {
+          $section.find(`tr[data-user-id="${deletedId}"]`).fadeOut(180, function () {
+            $(this).remove();
+          });
+          showAdminActionAlert(response.message || 'Пользователь удален', 'success');
+          return;
+        }
+
+        const row = response.data?.row;
+        if (row && row.id) {
+          const $row = $section.find(`tr[data-user-id="${Number(row.id)}"]`);
+          if ($row.length) {
+            $row.attr('data-role-code', row.role_code);
+            $row.attr('data-is-active', Number(row.is_active) === 1 ? '1' : '0');
+            $row.attr('data-is-chief-admin', Number(row.is_chief_admin) === 1 ? '1' : '0');
+            $row.find('[data-active-text]').text(Number(row.is_active) === 1 ? 'Да' : 'Нет');
+            $row.find('td').last().html(buildAdminUserActionHtml(row));
+          }
+        }
+
+        showAdminActionAlert(response.message || 'Готово', 'success');
+      }).fail(function (xhr) {
+        showAdminActionAlert(xhr.responseJSON?.message || 'Не удалось выполнить действие', 'error');
+      }).always(function () {
+        $btn.prop('disabled', false);
+      });
+    });
+  }
+
+  function initAdminUserFormGuards() {
+    const $form = $('form[data-admin-user-form="1"]');
+    if (!$form.length) return;
+
+    const isCreate = String($form.attr('data-is-create') || '0') === '1';
+    const isChiefTarget = String($form.attr('data-is-chief-admin-target') || '0') === '1';
+    const $role = $form.find('select[name="role_code"]');
+    const $active = $form.find('input[name="is_active"]');
+    const currentRoleCode = String($role.attr('data-current-role-code') || $role.val() || '');
+
+    function showError(text) {
+      showAdminActionAlert(text, 'error');
+    }
+
+    $role.on('change', function () {
+      const roleCode = String($role.val() || '');
+      if (isChiefTarget && roleCode !== 'admin') {
+        $role.val('admin');
+        showError('Роль главного администратора менять нельзя');
+      }
+    });
+
+    $active.on('change', function () {
+      if (!$active.prop('checked') && isChiefTarget) {
+        $active.prop('checked', true);
+        showError('Главного администратора нельзя блокировать');
+        return;
+      }
+
+      if (!$active.prop('checked') && !isCreate && (currentRoleCode === 'admin' || currentRoleCode === 'manager')) {
+        $active.prop('checked', true);
+        showError('Сначала разжалуйте администратора/менеджера до клиента, потом блокируйте');
+        return;
+      }
+    });
+
+    $form.on('submit', function (e) {
+      const roleCode = String($role.val() || '');
+      const isActive = $active.prop('checked');
+
+      if (isChiefTarget) {
+        if (roleCode !== 'admin') {
+          e.preventDefault();
+          showError('Роль главного администратора менять нельзя');
+          return;
+        }
+        if (!isActive) {
+          e.preventDefault();
+          showError('Главного администратора нельзя блокировать');
+          return;
+        }
+      }
+
+      if (!isCreate && !isActive && (currentRoleCode === 'admin' || currentRoleCode === 'manager')) {
+        e.preventDefault();
+        showError('Чтобы заблокировать администратора или менеджера, сначала разжалуйте его до клиента');
+      }
+    });
+  }
 
   function initAdminProductImagesLive() {
     const $form = $('form[data-product-images-live="1"]');
@@ -723,6 +942,123 @@
         input.value = String(id);
         $form.get(0).appendChild(input);
       });
+    });
+  }
+
+  function initAdminUserAvatarLive() {
+    const $form = $('form[data-admin-user-avatar-live="1"]');
+    if (!$form.length) return;
+
+    const $previewSection = $('#admin-user-avatar-preview-section');
+    const $avatarInput = $('#admin-user-avatar-input');
+    const $removeInput = $('#admin-user-remove-avatar-input');
+    if (!$previewSection.length || !$avatarInput.length || !$removeInput.length) return;
+
+    const state = {
+      existingAvatarPath: '',
+      pendingAvatarFile: null,
+      removedExisting: false,
+      objectUrl: ''
+    };
+
+    const placeholderCardHtml = '<article class="admin-image-card"><img src="/public/img/placeholder.svg" alt="Изображение по умолчанию" class="admin-image-thumb" /><p class="hint-text">Установлена картинка по умолчанию. Ее удалить нельзя.</p></article>';
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function collectInitialState() {
+      const $existingCard = $previewSection.find('.admin-image-card[data-existing="1"]').first();
+      if ($existingCard.length) {
+        state.existingAvatarPath = String($existingCard.attr('data-avatar-path') || '').trim();
+      }
+      $removeInput.val('0');
+    }
+
+    function revokeObjectUrl() {
+      if (!state.objectUrl) return;
+      URL.revokeObjectURL(state.objectUrl);
+      state.objectUrl = '';
+    }
+
+    function syncAvatarInput() {
+      const transfer = new DataTransfer();
+      if (state.pendingAvatarFile) transfer.items.add(state.pendingAvatarFile);
+      $avatarInput.get(0).files = transfer.files;
+    }
+
+    function buildImageCardHtml(params) {
+      const imageSrc = params.src;
+      const altText = escapeHtml(params.alt || '');
+      const buttonHtml = params.button
+        ? `<button class="btn btn-secondary js-admin-user-avatar-remove" type="button" data-source="${params.button.source}">Удалить изображение</button>`
+        : '';
+
+      return `<article class="admin-image-card"><img src="${imageSrc}" alt="${altText}" class="admin-image-thumb" onerror="this.onerror=null;this.src='/public/img/placeholder.svg';" />${buttonHtml}</article>`;
+    }
+
+    function renderAvatar() {
+      revokeObjectUrl();
+
+      let cardHtml = placeholderCardHtml;
+      if (state.pendingAvatarFile) {
+        state.objectUrl = URL.createObjectURL(state.pendingAvatarFile);
+        cardHtml = buildImageCardHtml({
+          src: state.objectUrl,
+          alt: state.pendingAvatarFile.name || 'Аватар пользователя',
+          button: { source: 'pending' }
+        });
+      } else if (state.existingAvatarPath && !state.removedExisting) {
+        cardHtml = buildImageCardHtml({
+          src: `/uploads/${encodeURI(state.existingAvatarPath)}`,
+          alt: 'Аватар пользователя',
+          button: { source: 'existing' }
+        });
+      }
+
+      $previewSection.find('.admin-image-card').remove();
+      $previewSection.append(cardHtml);
+    }
+
+    collectInitialState();
+    renderAvatar();
+
+    $avatarInput.on('change', function () {
+      const file = this.files && this.files[0];
+      if (!file) return;
+      state.pendingAvatarFile = file;
+      state.removedExisting = false;
+      $removeInput.val('0');
+      syncAvatarInput();
+      renderAvatar();
+    });
+
+    $form.on('click', '.js-admin-user-avatar-remove', function (event) {
+      event.preventDefault();
+      const source = String($(this).attr('data-source') || '');
+
+      if (source === 'pending') {
+        state.pendingAvatarFile = null;
+        syncAvatarInput();
+      }
+
+      if (source === 'existing') {
+        state.removedExisting = true;
+        $removeInput.val('1');
+      }
+
+      renderAvatar();
+    });
+
+    $form.on('submit', function () {
+      if (state.pendingAvatarFile) {
+        $removeInput.val('0');
+      }
     });
   }
 
@@ -949,8 +1285,11 @@
   }
 
   initAdminProductImagesLive();
+  initAdminUserAvatarLive();
   initAdminSlugSkuGenerator();
   initProfileAvatarLive();
+  initAdminUsersListLive();
+  initAdminUserFormGuards();
   initProductSlider();
   initCatalogPerPageSlider();
 });

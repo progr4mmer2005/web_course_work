@@ -7,7 +7,8 @@
     <a class="btn" href="/admin/promos/new">Добавить</a>
   </form>
 
-  <table class="admin-table">
+  <div class="admin-table-wrap">
+    <table class="admin-table">
     <thead><tr><th>ID</th><th>Код</th><th>Правило скидки</th><th>Лимит</th><th>Активен</th><th>Действия</th></tr></thead>
     <tbody>
       {{#each items}}
@@ -26,7 +27,8 @@
         </tr>
       {{/each}}
     </tbody>
-  </table>
+    </table>
+  </div>
 </section>
 
 

@@ -17,6 +17,9 @@ INSERT INTO users (role_id, full_name, email, phone, password_hash, is_active) V
 ((SELECT id FROM roles WHERE code='courier'), 'Курьер Сервиса', 'courier@aurum.local', '+79990000003', '$2b$10$ROTl4rKCA8FKvb/IEHk9IuzDBAQ1lOlWro9Wi9UzlugAYVc2vMrqe', 1),
 ((SELECT id FROM roles WHERE code='client'), 'Тест Клиент', 'client@aurum.local', '+79990000004', '$2b$10$ROTl4rKCA8FKvb/IEHk9IuzDBAQ1lOlWro9Wi9UzlugAYVc2vMrqe', 1);
 
+INSERT INTO chief_admin (id, user_id) VALUES
+(1, (SELECT id FROM users WHERE email='admin@aurum.local' LIMIT 1));
+
 INSERT INTO categories (name, slug) VALUES
 ('Кольца', 'koltsa'),
 ('Серьги', 'sergi'),

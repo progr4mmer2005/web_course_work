@@ -7,7 +7,8 @@
     <a class="btn" href="/admin/reviews/products/new">Добавить</a>
   </form>
 
-  <table class="admin-table">
+  <div class="admin-table-wrap">
+    <table class="admin-table">
     <thead><tr><th>ID</th><th>Пользователь</th><th>Товар</th><th>Оценка</th><th>Комментарий</th><th>Публикация</th><th>Действия</th></tr></thead>
     <tbody>
       {{#each items}}
@@ -31,7 +32,8 @@
         </tr>
       {{/each}}
     </tbody>
-  </table>
+    </table>
+  </div>
 </section>
 
 

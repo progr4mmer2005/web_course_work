@@ -1,7 +1,8 @@
-﻿<section>
+<section>
   <p class="admin-back-link"><a class="btn btn-secondary" href="/admin">Назад в админ-панель</a></p>
   <h1>{{#if isCreate}}Новый пользователь{{else}}Редактировать пользователя{{/if}}</h1>
-  <form method="post" action="{{action}}" class="form card">
+
+  <form method="post" action="{{action}}" enctype="multipart/form-data" class="form card" data-admin-user-form="1" data-admin-user-avatar-live="1" data-is-create="{{#if isCreate}}1{{else}}0{{/if}}" data-is-chief-admin-target="{{#if is_chief_admin_target}}1{{else}}0{{/if}}">
     {{#if errors.length}}
       <div class="errors">
         {{#each errors}}<p>{{this}}</p>{{/each}}
@@ -18,7 +19,7 @@
       <input type="text" name="phone" value="{{item.phone}}" required />
     </label>
     <label>Роль
-      <select name="role_code" required>
+      <select name="role_code" required data-current-role-code="{{item.role_code}}">
         {{#each roles}}
           <option value="{{code}}" {{#if (eq code ../item.role_code)}}selected{{/if}}>{{name}}</option>
         {{/each}}
@@ -29,13 +30,41 @@
       <input type="password" name="password" {{#if isCreate}}required{{/if}} minlength="6" />
     </label>
 
+    <div class="target-builder admin-image-sections">
+      <div class="admin-image-section">
+        <h3>Аватар пользователя</h3>
+        <p class="hint-text">Загрузить новый аватар (jpg, jpeg, png, webp)</p>
+        <input type="hidden" name="remove_avatar" id="admin-user-remove-avatar-input" value="0" />
+        <label class="file-picker" for="admin-user-avatar-input">
+          <span class="file-picker-btn">Выбрать файл</span>
+          <input class="file-picker-input" type="file" name="avatar" id="admin-user-avatar-input" accept=".jpg,.jpeg,.png,.webp" />
+        </label>
+      </div>
+
+      <div class="admin-image-section" id="admin-user-avatar-preview-section">
+        <h3>Превью аватара</h3>
+        {{#if item.avatar_path}}
+          <article class="admin-image-card" data-existing="1" data-avatar-path="{{item.avatar_path}}">
+            <img src="/uploads/{{item.avatar_path}}" alt="{{item.full_name}}" class="admin-image-thumb" onerror="this.onerror=null;this.src='/public/img/placeholder.svg';" />
+            <button class="btn btn-secondary js-admin-user-avatar-remove" type="button" data-source="existing">Удалить изображение</button>
+          </article>
+        {{else}}
+          <article class="admin-image-card">
+            <img src="/public/img/placeholder.svg" alt="Изображение по умолчанию" class="admin-image-thumb" />
+            <p class="hint-text">Установлена картинка по умолчанию. Ее удалить нельзя.</p>
+          </article>
+        {{/if}}
+      </div>
+    </div>
+
     <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" {{#if item.is_active}}checked{{/if}} /><span>Активен</span></label>
     <label class="checkbox-row"><input type="checkbox" name="can_review_product" value="1" {{#if item.can_review_product}}checked{{/if}} /><span>Разрешить отзывы на товары</span></label>
     <label class="checkbox-row"><input type="checkbox" name="can_review_store" value="1" {{#if item.can_review_store}}checked{{/if}} /><span>Разрешить отзыв о магазине</span></label>
 
+    {{#if is_chief_admin_target}}
+      <p class="hint-text">Это главный админ. Нельзя менять ему роль и статус активности.</p>
+    {{/if}}
+
     <button class="btn" type="submit">Сохранить</button>
   </form>
 </section>
-
-
-
