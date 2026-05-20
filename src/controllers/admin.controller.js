@@ -103,7 +103,7 @@ function getFileExtension(file) {
 function ensureImageFile(file) {
   const ext = getFileExtension(file);
   if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) {
-    throw new Error('Р Р°Р·СЂРµС€РµРЅС‹ С‚РѕР»СЊРєРѕ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ jpg, jpeg, png, webp');
+    throw new Error('Разрешены только изображения jpg, jpeg, png, webp');
   }
   return ext;
 }
@@ -129,7 +129,7 @@ function removeUploadedFiles(relativePaths = []) {
         fs.unlinkSync(targetPath);
       }
     } catch (error) {
-      console.error(`РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ С„Р°Р№Р» ${relativePath}`, error);
+      console.error(`Не удалось удалить файл ${relativePath}`, error);
     }
   }
 }
@@ -167,9 +167,9 @@ async function uploadProductImages(files, productName) {
 
 function getProductErrorMessage(error) {
   if (error?.code === 'ER_DUP_ENTRY') {
-    return 'РўРѕРІР°СЂ СЃ С‚Р°РєРёРј slug РёР»Рё SKU СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚';
+    return 'Товар с таким slug или SKU уже существует';
   }
-  return error?.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ С‚РѕРІР°СЂ';
+  return error?.message || 'Не удалось сохранить товар';
 }
 
 function getSingleUploadFile(input) {
@@ -364,7 +364,7 @@ async function productUpdate(req, res, next) {
 
     if (!existingItem) {
       if (isAjax) {
-        return res.status(404).json({ ok: false, message: 'РўРѕРІР°СЂ РЅРµ РЅР°Р№РґРµРЅ' });
+        return res.status(404).json({ ok: false, message: 'Товар не найден' });
       }
       return res.redirect('/admin/products');
     }
@@ -516,7 +516,7 @@ async function discountCreate(req, res, next) {
         categories,
         products,
         action: '/admin/discounts',
-        errors: [error.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ СЃРєРёРґРєСѓ']
+        errors: [error.message || 'Не удалось сохранить скидку']
       });
     } catch (renderError) {
       return next(renderError);
@@ -590,7 +590,7 @@ async function discountUpdate(req, res, next) {
         categories,
         products,
         action: `/admin/discounts/${discountId}`,
-        errors: [error.message || 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ СЃРєРёРґРєСѓ']
+        errors: [error.message || 'Не удалось сохранить скидку']
       });
     } catch (renderError) {
       return next(renderError);
@@ -935,11 +935,11 @@ function validateUserPayload(body, isCreate = false) {
   const canReviewProduct = normalizeBool(body.can_review_product);
   const canReviewStore = normalizeBool(body.can_review_store);
 
-  if (fullName.length < 2) errors.push('РРјСЏ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РЅРµ РєРѕСЂРѕС‡Рµ 2 СЃРёРјРІРѕР»РѕРІ');
-  if (!/^\S+@\S+\.\S+$/.test(email)) errors.push('РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ email');
-  if (!/^\+?[0-9\-\s()]{10,20}$/.test(phone)) errors.push('РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ С‚РµР»РµС„РѕРЅ');
-  if (!roleCode) errors.push('РЈРєР°Р¶РёС‚Рµ СЂРѕР»СЊ');
-  if (isCreate && password.length < 6) errors.push('РџР°СЂРѕР»СЊ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РЅРµ РєРѕСЂРѕС‡Рµ 6 СЃРёРјРІРѕР»РѕРІ');
+  if (fullName.length < 2) errors.push('Имя должно быть не короче 2 символов');
+  if (!/^\S+@\S+\.\S+$/.test(email)) errors.push('Некорректный email');
+  if (!/^\+?[0-9\-\s()]{10,20}$/.test(phone)) errors.push('Некорректный телефон');
+  if (!roleCode) errors.push('Укажите роль');
+  if (isCreate && password.length < 6) errors.push('Пароль должен быть не короче 6 символов');
 
   return {
     errors,
@@ -960,10 +960,10 @@ async function userCreate(req, res, next) {
     const roles = await adminUserModel.listRoles();
     const { errors, payload } = validateUserPayload(req.body, true);
     const roleId = await adminUserModel.getRoleIdByCode(payload.roleCode);
-    if (!roleId) errors.push('Р РѕР»СЊ РЅРµ РЅР°Р№РґРµРЅР°');
+    if (!roleId) errors.push('Роль не найдена');
 
     const emailUsed = await adminUserModel.emailExists(payload.email);
-    if (emailUsed) errors.push('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј email СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚');
+    if (emailUsed) errors.push('Пользователь с таким email уже существует');
 
     let uploadedAvatarPath = '';
     const avatarFile = getSingleUploadFile(req.files?.avatar);
@@ -1049,10 +1049,10 @@ async function userUpdate(req, res, next) {
 
     const { errors, payload } = validateUserPayload(req.body, false);
     const roleId = await adminUserModel.getRoleIdByCode(payload.roleCode);
-    if (!roleId) errors.push('Р РѕР»СЊ РЅРµ РЅР°Р№РґРµРЅР°');
+    if (!roleId) errors.push('Роль не найдена');
 
       const emailUsed = await adminUserModel.emailExists(payload.email, userId);
-      if (emailUsed) errors.push('РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ СЃ С‚Р°РєРёРј email СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚');
+      if (emailUsed) errors.push('Пользователь с таким email уже существует');
 
       const isActive = normalizeBool(req.body.is_active);
       const removeAvatar = normalizeBool(req.body.remove_avatar);
